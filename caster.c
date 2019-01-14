@@ -308,15 +308,20 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 
 	for(i = 0; i < numSprites; ++i)
 	{
+		if (spriteOrder[i] < 0 || spriteOrder[i] >= numSprites)
+		{
+			continue;
+		}
+
 		spriteX = sprite[spriteOrder[i]].x - player->posX;
 		spriteY = sprite[spriteOrder[i]].y - player->posY;
 		invDet = 1.0 / (player->planeX * player->dirY - player->dirX * player->planeY);
-		
+
 		transX = invDet * (player->dirY * spriteX - player->dirX * spriteY);
 		transY = invDet * (-player->planeY * spriteX + player->planeX * spriteY);
-		
+
 		spriteScreenX = (int)((wwWidth / 2) * (1 + transX / transY));
-		
+
 		spriteHeight = abs((int)(wwHeight / transY));
 		dStart = -spriteHeight / 2 + wwHeight / 2;
 		dEnd = spriteHeight / 2 + wwHeight / 2;

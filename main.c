@@ -271,7 +271,7 @@ int main(int argc, char** argv)
 			oldTime = newTime;
 			newTime = SDL_GetTicks();
 			frameTime = (newTime - oldTime);
-			if(frameTime < 41.67) SDL_Delay(41.67 - frameTime);
+			// if(frameTime < 16.67) SDL_Delay(16.67 - frameTime);
 			frameTime /= 1000.0;
 			sprintf(filename, "%s: %s [%d fps]", config.title, levelinfo.name, (int)(1 / frameTime));
 			SDL_WM_SetCaption(filename, NULL);
@@ -307,6 +307,7 @@ int main(int argc, char** argv)
 			/*if(OnKeyPress(&event, SDLK_s)) SaveGame(&player, npcs, &levelinfo, (char*)visited);
 			if(OnKeyPress(&event, SDLK_l)) LoadGame(&player, npcs, &levelinfo, (char*)visited);*/
 			if(OnKeyPress(&event, SDLK_f)) flashlight = flashlight ? 0 : 1;
+			if(OnKeyPress(&event, SDLK_b)) player.battery += 50;
 			if(OnKeyPress(&event, SDLK_SPACE) && player.revolver) Shoot((int*)level, &player);
 
 			if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
