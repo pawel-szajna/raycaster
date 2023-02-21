@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 #define CANENTER(x) 	(!((x)==1 || (x)==2))
 #define SQR(x) 			((x)*(x))
@@ -54,37 +55,16 @@ void InitAI(int* level)
 	/*for(x = 0; x < levelSize; ++x) { for(y = 0; y < levelSize; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
 }
 
-void ResetAI(NPCList** npcs)
+void ResetAI(NPCs& npcs)
 {
-	NPCList* tmp;
-
 	printf("Initializing artificial intelligence... ");
-
-	while(*npcs != NULL)
-	{
-		tmp = *npcs;
-		*npcs = (*npcs)->next;
-		free(tmp);
-	}
-
-	printf("OK\n");
+    npcs.clear();
 }
 
-NPCList* AddNPC(NPCList* npcs, double x, double y, int firstTexture)
+void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
 {
-	auto newnpc = new NPCList;
-
-	assert(newnpc);
-	printf("Adding new NPC... ");
-	newnpc->npc.x = x + 0.5;
-	newnpc->npc.y = y + 0.5;
-	newnpc->npc.firstTexture = firstTexture;
-	newnpc->npc.currentTexture = 0;
-	newnpc->npc.alive = 1;
-	newnpc->next = npcs;
-	printf("OK\n");
-
-	return newnpc;
+    printf("Adding new NPC... ");
+    npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, 1, 0, 0});
 }
 
 ItemList* AddItem(ItemList* item, double x, double y, int num)
@@ -151,45 +131,43 @@ void UpdateSearchMap(int cx, int cy, int tx, int ty)
 
 double AI_DistanceToNearestNPC(Player* player)
 {
-	NPCList* current;
-	double distance, nearest;
-	nearest = 100;
+	auto nearest = 100.0;
 
-	current = player->data.current->npcs;
-	assert(current);
-
-	while(current != NULL)
-	{
-		if(current->npc.alive)
-		{
-			distance = DIST(current->npc.x, current->npc.y, player->posX, player->posY);
-			nearest = distance < nearest ? distance : nearest;
-			current->npc.dist = distance;
-		}
-		current = current->next;
-	}
+    for (auto& npc : player->data.current->npcs)
+    {
+        if (npc.alive)
+        {
+            auto distance = DIST(npc.x, npc.y, player->posX, player->posY);
+            nearest = std::min(distance, nearest);
+            npc.distance = distance;
+        }
+    }
 
 	return sqrt(nearest);
 }
 
-int KillNPC(double x, double y, Player* player)
+bool KillNPC(double x, double y, NPCs& npcs)
 {
-	NPCList* current = player->data.current->npcs;
-	while(current != NULL)
-	{
-		if(current->npc.alive && (abs(current->npc.x - x) < 0.4) && (abs(current->npc.y - y) < 0.4))
-		{
-			current->npc.alive = 0;
-			return 1;
-		}
-		current = current->next;
-	}
-	return 0;
+    auto npcToKill = std::find_if(npcs.begin(),
+                                  npcs.end(),
+                                  [x, y] (const auto& npc)
+                                  {
+                                      return npc.alive and
+                                             abs(npc.x - x) < 0.4 and
+                                             abs(npc.y - y) < 0.4;
+                                  });
+
+    if (npcToKill == npcs.end())
+    {
+        return false;
+    }
+
+    npcToKill->alive = false;
+    return true;
 }
 
 int AI_Tick(Player* player, double frameTime, int flashlight)
 {
-	NPCList* current;
 	ItemList* currentitems;
 	double distance, target;
 	int popup=0;
@@ -199,37 +177,38 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
 
 	ResetDynamicSprites();
 
-	current = player->data.current->npcs;
 	currentitems = player->data.current->items;
-	assert(current);
 
-	while(current != NULL) /* handle npcs */
-	{
-		if(current->npc.alive && (current->npc.dist < SQR(8)))
-		{
-			current->npc.currentTexture = (current->npc.currentTexture + 1) % 4;
-			distance = sqrt(DIST(current->npc.x, current->npc.y, (double)current->npc.targetX + 0.5, (double)current->npc.targetY + 0.5));
+    for (auto& npc : player->data.current->npcs)
+    {
+        if (npc.alive && npc.distance < SQR(8))
+        {
+            npc.currentTexture = (npc.currentTexture + 1) % 4;
 
-			/* poki co kazdy npc szuka gracza */
-			if(distance < 0.12 || distance > 1)
-			{
-				/* wyznaczanie nowego celu */
-				current->npc.targetX = (int)player->posX;
-				current->npc.targetY = (int)player->posY;
-				distance = sqrt(DIST(current->npc.x, current->npc.y, (double)current->npc.targetX + 0.5, (double)current->npc.targetY + 0.5));
-				/*UpdateSearchMap((int)current->npc.x, (int)current->npc.y, (int)player->posX, (int)player->posY);*/
-			}
+            if (distance < 0.12 or distance > 1)
+            {
+                npc.targetX = (int)player->posX;
+                npc.targetY = (int)player->posY;
+                distance = sqrt(DIST(npc.x, npc.y, (double)npc.targetX + 0.5, (double)npc.targetY + 0.5));
+                // UpdateSearchMap((int)current->npc.x, (int)current->npc.y, (int)player->posX, (int)player->posY);
+            }
 
-			target = (((double)current->npc.targetX - current->npc.x + 0.5) / distance) * 0.15;
-			if(AIMap[(int)(current->npc.x + target)][(int)(current->npc.y)]) current->npc.x += target;
+            target = (((double)npc.targetX - npc.x + 0.5) / distance) * 0.15;
+            if(AIMap[(int)(npc.x + target)][(int)(npc.y)])
+            {
+                npc.x += target;
+            }
 
-			target = (((double)current->npc.targetY - current->npc.y + 0.5) / distance) * 0.15;
-			if(AIMap[(int)(current->npc.x)][(int)(current->npc.y + target)]) current->npc.y += target;
-		}
+            target = (((double)npc.targetY - npc.y + 0.5) / distance) * 0.15;
+            if(AIMap[(int)(npc.x)][(int)(npc.y + target)])
+            {
+                npc.y += target;
+            }
+        }
 
-		AddDynamicSprite(current->npc.x, current->npc.y, current->npc.alive ? (48 + current->npc.firstTexture + 8 * current->npc.currentTexture) : 88 + current->npc.firstTexture);
-		current = current->next;
-	}
+        auto npcTexture = npc.alive ? (48 + npc.firstTexture + 8 * npc.currentTexture) : 88 + npc.firstTexture;
+        AddDynamicSprite(npc.x, npc.y, npcTexture);
+    }
 
 	while(currentitems != NULL) /* handle items */
 	{	

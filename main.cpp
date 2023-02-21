@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	GameConfig config;
 
 	Player player;
-	NPCList* npcs = NULL;
+	NPCs npcs{};
 
 	SDL_Surface* screen;
 	SDL_Surface* worldview;
@@ -168,12 +168,10 @@ int main(int argc, char** argv)
 		{
 			if(player.reloadLevel) /* load new level */
 			{
-				npcs = NULL;
 				sprintf(filename, "map/level%d.dat", player.level);
-				LoadLevel((int*)level, &levelinfo, &npcs, filename);
-				assert(npcs);
+				LoadLevel((int*)level, &levelinfo, npcs, filename);
 				generate_map((int*)level, (int)player.posX, (int)player.posY, 1);
-				generate_npcs((int*)level, &npcs);
+				npcs = generate_npcs((int*)level);
 				InitAI((int*)level);
 				InitUI();
 				sprintf(filename, "%s: Level %d", config.title, player.level);
@@ -197,20 +195,19 @@ int main(int argc, char** argv)
 
 					player.data.current->levelID = player.level;
 					player.data.current->next = player.data.levels;
-					player.data.current->npcs = new NPCList;
-					assert(player.data.current->npcs);
-
-					memcpy(player.data.current->npcs, npcs, sizeof(NPCList));
-					assert(player.data.current->npcs);
+					player.data.current->npcs = NPCs{};
+                    npcs = player.data.current->npcs;
 
 					player.data.current->items = NULL;
 
 					for(i = 0; i < levelSize * levelSize; ++i) player.data.current->visited[i] = 0;
 					player.data.levels = player.data.current;
-					if(npcs != NULL) free(npcs);
 				}
 
-				if(found) ResetAI(&npcs);
+				if (found)
+                {
+                    ResetAI(npcs);
+                }
 
 				player.data.current->items = AddItem(player.data.current->items, 27, 46, 0);
 				player.data.current->items = AddItem(player.data.current->items, 27, 47, 1);

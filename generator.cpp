@@ -83,21 +83,25 @@ void wall_fix(int* level)
 	}
 }
 
-void generate_npcs(int* level, NPCList** npcs)
+NPCs generate_npcs(int* level)
 {
-	int dx, dy, i = levelSize / 4;
+    NPCs npcs{};
+	int dx, dy;
+    int npcsToGenerate = levelSize / 4;
 
-	while(i)
+	while (npcsToGenerate > 0)
 	{
 		dx = rand() % levelSize;
 		dy = rand() % levelSize;
 		if(!LEV(dx,dy))
 		{
 			printf("Spawning headless at %d:%d (block = %d)\n", dx, dy, LEV(dx, dy));
-			--i;
-			*npcs = AddNPC(*npcs, dx, dy, 0);
+			--npcsToGenerate;
+			AddNPC(npcs, dx, dy, 0);
 		}
 	}
+
+    return npcs;
 }
 
 void bonus_room(int* level)

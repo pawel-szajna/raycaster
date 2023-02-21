@@ -10,7 +10,7 @@ int BlockType(int* level, int x, int y)
 	return level[levelSize * x + y] % 16;
 }
 
-void LoadLevel(int* level, LevelInfo* li, NPCList** npcs, const char* filename)
+void LoadLevel(int* level, LevelInfo* li, NPCs& npcs, const char* filename)
 {
 	int x;
 	int dx, dy, dz;
@@ -21,13 +21,13 @@ void LoadLevel(int* level, LevelInfo* li, NPCList** npcs, const char* filename)
 	assert(data);
 	fread((char*)(li), sizeof(char), sizeof(LevelInfo) / sizeof(char), data);
 	fread((char*)(level), sizeof(char), (levelSize * levelSize * sizeof(int)) / sizeof(char), data);
+    npcs.clear();
 	for(x = 0; x < li->npcCount; ++x)
 	{
 		fread(&dx, sizeof(int), 1, data);
 		fread(&dy, sizeof(int), 1, data);
 		fread(&dz, sizeof(int), 1, data);
-		*npcs = AddNPC(*npcs, dx, dy, dz);
-		assert(npcs);
+		AddNPC(npcs, dx, dy, dz);
 	}
 	fclose(data);
 }

@@ -12,6 +12,6 @@ void random_room(int* level);
 void drawmap(int* level, int pX, int pY);
 void corridor(int* level);
 void generate_map(int* level, int pX, int pY, int bonusroom);
-void generate_npcs(int* level, NPCList** npcs);
+NPCs generate_npcs(int* level);
 
 #endif

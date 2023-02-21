@@ -17,7 +17,7 @@ void Shoot(int* level, Player* player)
 	{
 
 		if((!CANENTER(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
-		if(KillNPC(bulletX, bulletY, player)) break;
+		if(KillNPC(bulletX, bulletY, player->data.current->npcs)) break;
 
 		bulletX += player->dirX * 2;
 		bulletY += player->dirY * 2;
@@ -59,7 +59,6 @@ void LoadText(char* texts)
 void NewGame(Player* player, GameConfig* config)
 {
 	PlayerLevel *tmp;
-	NPCList *tmp2;
 
 	player->posX = config->pX + 0.5; 
 	player->posY = config->pY + 0.5;
@@ -80,13 +79,6 @@ void NewGame(Player* player, GameConfig* config)
 	{
 		tmp = player->data.levels;
 		assert(tmp);
-		while(tmp->npcs != NULL)
-		{
-			tmp2 = tmp->npcs;
-			assert(tmp2);
-			tmp->npcs = tmp->npcs->next;
-			free(tmp2);
-		}
 		player->data.levels = player->data.levels->next;
 		free(tmp);
 	}
@@ -195,11 +187,10 @@ void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, doub
 	}
 }
 
-void SaveGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
+void SaveGame(Player* player, const NPCs& npcs, LevelInfo* li, char* visited)
 {
 	FILE* state;
 	PlayerLevel* it;
-	NPCList* npc;
 	int i;
 
 	assert(player);
@@ -220,12 +211,12 @@ void SaveGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
 		fwrite((char*)it, sizeof(char), sizeof(PlayerLevel) / sizeof(char), state);
 		
 		/* save npcs */
-		npc = it->npcs;
-		i = 0;
-		while(npc != NULL) { npc = npc->next; ++i; }
+		i = npcs.size();
 		fwrite(&i, sizeof(int), 1, state);
-		npc = it->npcs;
-		while(npc != NULL) { assert(npc); fwrite((char*)npc, sizeof(char), sizeof(NPCList) / sizeof(char), state); npc = npc->next; }
+		for (const auto& npc : npcs)
+        {
+            fwrite((char*)(&npc), sizeof(char), sizeof(NPC) / sizeof(char), state);
+        }
 
 		/* go to next level state */
 		it = it->next;
@@ -236,11 +227,10 @@ void SaveGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
 	printf("OK\n");
 }
 
-void LoadGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
+void LoadGame(Player* player, NPCs& npcs, LevelInfo* li, char* visited)
 {
 	FILE* state;
 	PlayerLevel* it;
-	NPCList* npc;
 	int i;
 
 	assert(player);
@@ -263,18 +253,14 @@ void LoadGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
 		assert(it);
 		fread((char*)it, sizeof(char), sizeof(PlayerLevel) / sizeof(char), state);
 		it->next = player->data.levels;
-		it->npcs = nullptr;
 
 		/* load npc states */
 		fread(&i, sizeof(int), 1, state);
-		while(i)
+		while(i --> 0)
 		{
-			npc = new NPCList;
-			assert(npc);
-			fread((char*)npc, sizeof(char), sizeof(NPCList) / sizeof(char), state);
-			npc->next = it->npcs;
-			it->npcs = npc;
-			--i;
+			NPC npc{};
+			fread((char*)(&npc), sizeof(char), sizeof(NPC) / sizeof(char), state);
+			npcs.emplace_back(std::move(npc));
 		}
 
 		player->data.levels = it;

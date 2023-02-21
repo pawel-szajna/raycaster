@@ -5,6 +5,7 @@
 
 #include "SDL/SDL.h"
 #include <cassert>
+#include <vector>
 
 constexpr auto speedFactor{1.1};
 constexpr auto levelSize{64};
@@ -32,20 +33,15 @@ struct NPC
 {
 	double x;
 	double y;
-	double dist;
+	double distance;
 	int firstTexture;
 	int currentTexture;
-	int alive;
+	bool alive;
 	int targetX;
 	int targetY;
-
 };
 
-struct NPCList
-{
-	NPC npc;
-	NPCList* next;
-};
+using NPCs = std::vector<NPC>;
 
 struct Item
 {
@@ -66,7 +62,7 @@ struct PlayerLevel
 	int levelID;
 	char visited[levelSize * levelSize];
 	ItemList* items;
-	NPCList* npcs;
+	NPCs npcs;
 
 	PlayerLevel* next;
 };

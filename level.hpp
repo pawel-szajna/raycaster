@@ -3,5 +3,5 @@
 #include "data.hpp"
 
 int BlockType(int* level, int x, int y);
-void LoadLevel(int* level, LevelInfo* li, NPCList** npcs, const char* filename);
+void LoadLevel(int* level, LevelInfo* li, NPCs& npcs, const char* filename);
 SDL_Surface* DrawMap(int* level, Player* player);
