@@ -20,6 +20,16 @@
 #undef main
 #endif
 
+int OnKeyPress(SDL_Event* event, int key)
+{
+    if(event->type == SDL_KEYDOWN && event->key.keysym.sym == key)
+    {
+        event->type = 0;
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
 	int level[levelSize][levelSize];
@@ -192,7 +202,7 @@ int main(int argc, char** argv)
 			/* render frame */
 			if(!paused)
 			{
-				CastFrame(worldview, (int*)level, &player, flashlight && player.flashlight && Blink(player.battery));
+				CastFrame(worldview, (int*)level, &player, flashlight && player.blink());
 				if(player.revolver) SDL_BlitSurface(gun_hand, 0, worldview, &r9);
 			}
 			GenerateNoise(noise, danger_level);
@@ -276,7 +286,7 @@ int main(int argc, char** argv)
 			if(OnKeyPress(&event, SDLK_l)) LoadGame(&player, npcs, &levelinfo, (char*)visited);*/
 			if(OnKeyPress(&event, SDLK_f)) flashlight = flashlight ? 0 : 1;
 			if(OnKeyPress(&event, SDLK_b)) player.battery += 50;
-			if(OnKeyPress(&event, SDLK_SPACE) && player.revolver) Shoot((int*)level, &player);
+			if(OnKeyPress(&event, SDLK_SPACE)) player.shoot((int*)level);
 
 			if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
 			{

@@ -54,6 +54,8 @@ public:
     const Position& getPosition() const { return position; }
 
     void handleMovement(Uint8* keys, int* level, char* visited, double frameTime);
+    void shoot(int* level);
+    int blink();
 
 private:
     Position position;
@@ -63,8 +65,3 @@ private:
 
 void LoadText(char* texts);
 
-void Shoot(int* level, Player* player);
-
-int OnKeyPress(SDL_Event* event, int key);
-
-int Blink(int battery);

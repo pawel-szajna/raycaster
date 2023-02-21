@@ -10,19 +10,24 @@
 
 #define CANENTER(x) (!((x)==1 || (x)==2))
 
-void Shoot(int* level, Player* player)
+void Player::shoot(int* level)
 {
-	double bulletX = player->getPosition().x;
-	double bulletY = player->getPosition().y;
+    if (not revolver)
+    {
+        return;
+    }
 
-	for(int i = 0; i < 100; ++i)
+	double bulletX = position.x;
+	double bulletY = position.y;
+
+	for (int i = 0; i < 100; ++i)
 	{
 
 		if((!CANENTER(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
-		if(KillNPC(bulletX, bulletY, player->currentLevel().npcs)) break;
+		if(KillNPC(bulletX, bulletY, currentLevel().npcs)) break;
 
-		bulletX += player->getPosition().dirX * 2;
-		bulletY += player->getPosition().dirY * 2;
+		bulletX += position.dirX * 2;
+		bulletY += position.dirY * 2;
 	}
 }
 
@@ -163,21 +168,22 @@ void Player::handleMovement(Uint8* keys, int* level, char* visited, double frame
 	}
 }
 
-int OnKeyPress(SDL_Event* event, int key)
+int Player::blink()
 {
-	if(event->type == SDL_KEYDOWN && event->key.keysym.sym == key)
-	{
-		event->type = 0;
-		return 1;
-	}
-	return 0;
-}
+	if (battery <= 0 or not flashlight)
+    {
+        return 0;
+    }
 
-int Blink(int battery)
-{
-	if(!battery) return 0;
-	if(battery > 45) return 1;
+    if (battery > 45)
+    {
+        return 1;
+    }
 
-	if(battery < 10) return !(rand() % (10 - battery));
-	return (rand() % battery);
+	if (battery < 10)
+    {
+        return !(rand() % (10 - battery));
+    }
+
+    return (rand() % battery);
 }
