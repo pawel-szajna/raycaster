@@ -32,34 +32,34 @@ int goOn;
 
 void InitAI(int* level)
 {
-	int x, y;
+    int x, y;
 
-	for(x = 0; x < levelSize - 1; ++x)
-	{
-		AIMap[x][0] = 0;
-		AIMap[x][levelSize - 1] = 0;
-		AIMap[0][x] = 0;
-		AIMap[levelSize - 1][x] = 0;
-	}
+    for(x = 0; x < levelSize - 1; ++x)
+    {
+        AIMap[x][0] = 0;
+        AIMap[x][levelSize - 1] = 0;
+        AIMap[0][x] = 0;
+        AIMap[levelSize - 1][x] = 0;
+    }
 
-	for(x = 1; x < levelSize; ++x) for(y = 1; y < levelSize; ++y)
-	{
-	/*	AIMap[x][y] = 0;
-		if(CANENTER(levelId[32*(x+1)+y]%16)) AIMap[x][y] += 1;
-		if(CANENTER(levelId[32*x+y+1]%16)) AIMap[x][y] += 2;
-		if(CANENTER(levelId[32*(x-1)+y]%16)) AIMap[x][y] += 4;
-		if(CANENTER(levelId[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
-		AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
-	}
+    for(x = 1; x < levelSize; ++x) for(y = 1; y < levelSize; ++y)
+    {
+    /*	AIMap[x][y] = 0;
+        if(CANENTER(levelId[32*(x+1)+y]%16)) AIMap[x][y] += 1;
+        if(CANENTER(levelId[32*x+y+1]%16)) AIMap[x][y] += 2;
+        if(CANENTER(levelId[32*(x-1)+y]%16)) AIMap[x][y] += 4;
+        if(CANENTER(levelId[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
+        AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
+    }
 
 /*test MIN2 i MIN4*/
 /*printf("1 2 : %d\n7 3 : %d\n1 3 7 4 : %d\n8 3 5 5 : %d\n9 4 1 7 : %d\n8 5 9 0 : %d\n\n", MIN2(1,2), MIN2(7,3), MIN4(1,3,7,4), MIN4(8,3,5,5), MIN4(9,4,1,7),MIN4(8,5,9,0));*/
-	/*for(x = 0; x < levelSize; ++x) { for(y = 0; y < levelSize; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
+    /*for(x = 0; x < levelSize; ++x) { for(y = 0; y < levelSize; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
 }
 
 void ResetAI(NPCs& npcs)
 {
-	printf("Initializing artificial intelligence... ");
+    printf("Initializing artificial intelligence... ");
     npcs.clear();
 }
 
@@ -71,59 +71,59 @@ void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
 
 void AddItem(Items& items, double x, double y, int num)
 {
-	printf("Adding new item... ");
+    printf("Adding new item... ");
     items.push_back(Item{x + 0.5, y + 0.5, 1, num});
 }
 
 void UpdateNode(int cx, int cy, int tx, int ty, int value)
 {
-	int newv;
+    int newv;
 
-	if(!goOn) return;
-	if(!AIMap[cx][cy]) return;
+    if(!goOn) return;
+    if(!AIMap[cx][cy]) return;
 
-	newv = value + abs(cx - tx) + abs(cy - ty);
-	if(newv > 100) return;
+    newv = value + abs(cx - tx) + abs(cy - ty);
+    if(newv > 100) return;
 
-	if(AISearchMap[cx][cy] > newv)
-	{
-		AISearchMap[cx][cy] = newv;
-		if(cx == tx && cy == ty)
-		{
-			goOn = 0;
-			return;
-		}
-		UpdateNode(cx - 1, cy, tx, ty, value + 1);
-		UpdateNode(cx + 1, cy, tx, ty, value + 1);
-		UpdateNode(cx, cy - 1, tx, ty, value + 1);
-		UpdateNode(cx, cy + 1, tx, ty, value + 1);
-	}
+    if(AISearchMap[cx][cy] > newv)
+    {
+        AISearchMap[cx][cy] = newv;
+        if(cx == tx && cy == ty)
+        {
+            goOn = 0;
+            return;
+        }
+        UpdateNode(cx - 1, cy, tx, ty, value + 1);
+        UpdateNode(cx + 1, cy, tx, ty, value + 1);
+        UpdateNode(cx, cy - 1, tx, ty, value + 1);
+        UpdateNode(cx, cy + 1, tx, ty, value + 1);
+    }
 }
 
 void PrintSearchMap()
 {
-	for(int x = 0; x < levelSize; ++x)
-	{
-		for(int y = 0; y < levelSize; ++y) printf("%03d ", AISearchMap[x][y]);
-		printf("\n");
-	}
+    for(int x = 0; x < levelSize; ++x)
+    {
+        for(int y = 0; y < levelSize; ++y) printf("%03d ", AISearchMap[x][y]);
+        printf("\n");
+    }
 }
 
 void UpdateSearchMap(int cx, int cy, int tx, int ty)
 {
-	int x, y;
+    int x, y;
 
-	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
-		AISearchMap[x][y] = 100;
+    for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
+        AISearchMap[x][y] = 100;
 
-	goOn = 1;
-	UpdateNode(cx, cy, tx, ty, 0);
-	/*PrintSearchMap();*/
+    goOn = 1;
+    UpdateNode(cx, cy, tx, ty, 0);
+    /*PrintSearchMap();*/
 }
 
 double AI_DistanceToNearestNPC(Player* player)
 {
-	auto nearest = 100.0;
+    auto nearest = 100.0;
 
     for (auto& npc : player->currentLevel().npcs)
     {
@@ -135,7 +135,7 @@ double AI_DistanceToNearestNPC(Player* player)
         }
     }
 
-	return sqrt(nearest);
+    return sqrt(nearest);
 }
 
 bool KillNPC(double x, double y, NPCs& npcs)
@@ -160,16 +160,16 @@ bool KillNPC(double x, double y, NPCs& npcs)
 
 int AI_Tick(Player* player, double frameTime, int flashlight)
 {
-	double distance, target;
-	int popup{};
+    double distance, target;
+    int popup{};
 
-	lastTick += frameTime;
-	if(lastTick < TICK_FREQUENCY)
+    lastTick += frameTime;
+    if(lastTick < TICK_FREQUENCY)
     {
         return popup;
     }
 
-	ResetDynamicSprites();
+    ResetDynamicSprites();
 
     auto& currentLevel = player->currentLevel();
     const auto& position = player->getPosition();
@@ -243,6 +243,6 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         player->battery--;
     }
 
-	lastTick = 0;
-	return popup;
+    lastTick = 0;
+    return popup;
 }
