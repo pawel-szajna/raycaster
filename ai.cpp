@@ -23,35 +23,35 @@
 
 double lastTick;
 
-int AIMap[LEVEL_SIZE][LEVEL_SIZE];
-int AISearchMap[LEVEL_SIZE][LEVEL_SIZE];
+int AIMap[levelSize][levelSize];
+int AISearchMap[levelSize][levelSize];
 int goOn;
 
 void InitAI(int* level)
 {
 	int x, y;
 
-	for(x = 0; x < LEVEL_SIZE - 1; ++x)
+	for(x = 0; x < levelSize - 1; ++x)
 	{
 		AIMap[x][0] = 0;
-		AIMap[x][LEVEL_SIZE - 1] = 0;
+		AIMap[x][levelSize - 1] = 0;
 		AIMap[0][x] = 0;
-		AIMap[LEVEL_SIZE - 1][x] = 0;
+		AIMap[levelSize - 1][x] = 0;
 	}
 
-	for(x = 1; x < LEVEL_SIZE; ++x) for(y = 1; y < LEVEL_SIZE; ++y)
+	for(x = 1; x < levelSize; ++x) for(y = 1; y < levelSize; ++y)
 	{
 	/*	AIMap[x][y] = 0;
 		if(CANENTER(level[32*(x+1)+y]%16)) AIMap[x][y] += 1;
 		if(CANENTER(level[32*x+y+1]%16)) AIMap[x][y] += 2;
 		if(CANENTER(level[32*(x-1)+y]%16)) AIMap[x][y] += 4;
 		if(CANENTER(level[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
-		AIMap[x][y] = CANENTER(level[LEVEL_SIZE*x+y]%16);
+		AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
 	}
 
 /*test MIN2 i MIN4*/
 /*printf("1 2 : %d\n7 3 : %d\n1 3 7 4 : %d\n8 3 5 5 : %d\n9 4 1 7 : %d\n8 5 9 0 : %d\n\n", MIN2(1,2), MIN2(7,3), MIN4(1,3,7,4), MIN4(8,3,5,5), MIN4(9,4,1,7),MIN4(8,5,9,0));*/
-	/*for(x = 0; x < LEVEL_SIZE; ++x) { for(y = 0; y < LEVEL_SIZE; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
+	/*for(x = 0; x < levelSize; ++x) { for(y = 0; y < levelSize; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
 }
 
 void ResetAI(NPCList** npcs)
@@ -130,9 +130,9 @@ void UpdateNode(int cx, int cy, int tx, int ty, int value)
 
 void PrintSearchMap()
 {
-	for(int x = 0; x < LEVEL_SIZE; ++x)
+	for(int x = 0; x < levelSize; ++x)
 	{
-		for(int y = 0; y < LEVEL_SIZE; ++y) printf("%03d ", AISearchMap[x][y]);
+		for(int y = 0; y < levelSize; ++y) printf("%03d ", AISearchMap[x][y]);
 		printf("\n");
 	}
 }
@@ -141,7 +141,7 @@ void UpdateSearchMap(int cx, int cy, int tx, int ty)
 {
 	int x, y;
 
-	for(x = 0; x < LEVEL_SIZE; ++x) for(y = 0; y < LEVEL_SIZE; ++y)
+	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
 		AISearchMap[x][y] = 100;
 
 	goOn = 1;

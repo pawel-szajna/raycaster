@@ -22,8 +22,8 @@
 
 int main(int argc, char** argv)
 {
-	int level[LEVEL_SIZE][LEVEL_SIZE];
-	char visited[LEVEL_SIZE][LEVEL_SIZE];
+	int level[levelSize][levelSize];
+	char visited[levelSize][levelSize];
 
 	int paused = 0;
 	int flashlight = 1;
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	int popupmap = 0;
 	int i, found;
 	int danger_level;
-	int mode;
+	GameMode mode;
 
 	char texts[6][128];
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 	SDL_Event event = { 0 };
 	SDL_Rect r1 = { 0, 60, 0, 0 }, /* world view */
 			 r2 = { 84, 210, 0, 0 }, /* world & noise target */
-			 r4 = { 0, 0, 8 * LEVEL_SIZE, 8 * LEVEL_SIZE }, /* map target */
+			 r4 = {0, 0, 8 * levelSize, 8 * levelSize }, /* map target */
 			 r8 = { 0, 0, 128, 128 },
 			 r9 = { wwWidth / 2 - 29, wwHeight - 100, 59, 100 }; /* popup */
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 	SDL_SetColorKey(shade, SDL_SRCCOLORKEY, 0x00ffffff);
 	
 	player.data.levels = NULL;
-	mode = MODE_INIT;
+	mode = GameMode::Initial;
 
 	/* for map drawing */
 	/* TODO: make this cleaner*/
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 
 	for(;;) switch(mode)
 	{
-		case MODE_INIT:
+		case GameMode::Initial:
 		SDL_WM_SetCaption(config.title, NULL);
 		for(;;)
 		{
@@ -142,21 +142,21 @@ int main(int argc, char** argv)
 
 			if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
 			{
-				mode = MODE_QUIT;
+				mode = GameMode::Quit;
 				break;
 			}
 
 			if(OnKeyPress(&event, SDLK_RETURN)) break;
 		}
-		if(mode != MODE_QUIT) mode = MODE_MAIN_MENU;
+		if(mode != GameMode::Quit) mode = GameMode::MainMenu;
 		break;
 
-		case MODE_MAIN_MENU:
+		case GameMode::MainMenu:
 		NewGame(&player, &config);
-		mode = MODE_GAME;
+		mode = GameMode::Game;
 		break;
 
-		case MODE_GAME:
+		case GameMode::Game:
 		gun_hand = SDL_LoadBMP("gfx/gun/gun1.bmp");
 		gun_shoot = SDL_LoadBMP("gfx/gun/gun2.bmp");
 		assert(gun_hand);
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
 
 					player.data.current->items = NULL;
 
-					for(i = 0; i < LEVEL_SIZE * LEVEL_SIZE; ++i) player.data.current->visited[i] = 0;
+					for(i = 0; i < levelSize * levelSize; ++i) player.data.current->visited[i] = 0;
 					player.data.levels = player.data.current;
 					if(npcs != NULL) free(npcs);
 				}
@@ -298,7 +298,7 @@ int main(int argc, char** argv)
 			/* player dies */
 			if(nearest < 0.5)
 			{
-				mode = MODE_GAMEOVER;
+				mode = GameMode::GameOver;
 				break;
 			}
 
@@ -312,7 +312,7 @@ int main(int argc, char** argv)
 
 			if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
 			{
-				mode = MODE_INIT;
+				mode = GameMode::Initial;
 				break;
 			}
 
@@ -321,7 +321,7 @@ int main(int argc, char** argv)
 
 		break;
 
-		case MODE_GAMEOVER:
+		case GameMode::GameOver:
 		for(int a = 0; a < 40; ++a)
 		{
 			GenerateNoise(noise, danger_level);
@@ -335,10 +335,10 @@ int main(int argc, char** argv)
 			SDL_Delay(40);
 		}
 		danger_level = 128;
-		mode = MODE_INIT;
+		mode = GameMode::Initial;
 		break;
 
-		case MODE_QUIT:
+		case GameMode::Quit:
 		SDL_Quit();
 		return 0;
 		break;

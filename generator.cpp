@@ -2,19 +2,19 @@
 
 void clear_level(int* level)
 {
-	for(int i = 0; i < LEVEL_SIZE; ++i)
-		for(int j = 0; j < LEVEL_SIZE; ++j)
-			level[LEVEL_SIZE * i + j] = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
+	for(int i = 0; i < levelSize; ++i)
+		for(int j = 0; j < levelSize; ++j)
+			level[levelSize * i + j] = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
 }
 
 void drawmap(int* level, int pX, int pY)
 {
-	for(int i = 0; i < LEVEL_SIZE; ++i)
+	for(int i = 0; i < levelSize; ++i)
 	{
-		for(int j = 0; j < LEVEL_SIZE; ++j)
+		for(int j = 0; j < levelSize; ++j)
 		{
 			if(pX == i && pY == j) printf("@");
-			else printf("%c", level[LEVEL_SIZE*i+j]?'#':' ');
+			else printf("%c", level[levelSize * i + j] ? '#' : ' ');
 		}
 		printf("\n");
 	}
@@ -85,12 +85,12 @@ void wall_fix(int* level)
 
 void generate_npcs(int* level, NPCList** npcs)
 {
-	int dx, dy, i = LEVEL_SIZE / 4;
+	int dx, dy, i = levelSize / 4;
 
 	while(i)
 	{
-		dx = rand() % LEVEL_SIZE;
-		dy = rand() % LEVEL_SIZE;
+		dx = rand() % levelSize;
+		dy = rand() % levelSize;
 		if(!LEV(dx,dy))
 		{
 			printf("Spawning headless at %d:%d (block = %d)\n", dx, dy, LEV(dx, dy));
@@ -120,7 +120,7 @@ void generate_map(int* level, int pX, int pY, int bonusroom)
 	LEV(pX, pY) = 0;
 	if(bonusroom) bonus_room(level);
 	wall_fix(level);
-	level[LEVEL_SIZE * LEVEL_SIZE - 1] = 2;
+	level[levelSize * levelSize - 1] = 2;
 	/*drawmap(level, pX, pY);*/
 	printf("OK\n");
 }
@@ -128,17 +128,17 @@ void generate_map(int* level, int pX, int pY, int bonusroom)
 void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)
 {
 	int sasiedzi[4][4], ilosc_sasiadow, kolejnosc[4];
-	if(!level[LEVEL_SIZE*a + b]) return;
+	if(!level[levelSize * a + b]) return;
 	
 	if(g > 0)
 	{
-		level[LEVEL_SIZE*a+b] = 1;
+		level[levelSize * a + b] = 1;
 		return;
 	}
 
-	if(c>-1) level[LEVEL_SIZE*c+d] = 0;
+	if(c>-1) level[levelSize * c + d] = 0;
 	
-	level[LEVEL_SIZE*a+b] = 0;
+	level[levelSize * a + b] = 0;
 
 	ilosc_sasiadow = 0;
 	
@@ -160,7 +160,7 @@ void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)
 		++ilosc_sasiadow;
 	} 
 
-	if(a < LEVEL_SIZE - 3)
+	if(a < levelSize - 3)
 	{
 		sasiedzi[ilosc_sasiadow][0] = a + 2;
 		sasiedzi[ilosc_sasiadow][1] = b;
@@ -169,7 +169,7 @@ void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)
 		++ilosc_sasiadow;
 	} 
 
-	if(b < LEVEL_SIZE - 3)
+	if(b < levelSize - 3)
 	{
 		sasiedzi[ilosc_sasiadow][0] = a;
 		sasiedzi[ilosc_sasiadow][1] = b + 2;
@@ -204,8 +204,8 @@ void random_room(int* level)
 	int x, y;
 	int width = (rand() % 2) + 4;
 	int height = (rand() % 2) + 4;
-	int rx = (rand() % (LEVEL_SIZE - width - 3)) + 1;
-	int ry = (rand() % (LEVEL_SIZE - height - 3)) + 1;
+	int rx = (rand() % (levelSize - width - 3)) + 1;
+	int ry = (rand() % (levelSize - height - 3)) + 1;
 
 	width += rx;
 	height += ry;
@@ -218,9 +218,9 @@ void corridor(int* level)
 	int orientacja = rand() % 2;
 	if(orientacja)
 	{
-		int dlugosc = RND(4, LEVEL_SIZE / 5);
-		int x1 = RND(3, LEVEL_SIZE - dlugosc - 3);
-		int y1 = RND(2, LEVEL_SIZE - 6);
+		int dlugosc = RND(4, levelSize / 5);
+		int x1 = RND(3, levelSize - dlugosc - 3);
+		int y1 = RND(2, levelSize - 6);
 		int x2 = x1 + dlugosc;
 		int y2 = y1 + 6;
 		for(int x = x1; x < x2; ++x) for(int y = y1; y < y2; ++y) LEV(x, y) = 0;
@@ -228,9 +228,9 @@ void corridor(int* level)
 	}
 	else
 	{
-		int dlugosc = RND(4, LEVEL_SIZE / 5);
-		int x1 = RND(3, LEVEL_SIZE - dlugosc - 3);
-		int y1 = RND(2, LEVEL_SIZE - 6);
+		int dlugosc = RND(4, levelSize / 5);
+		int x1 = RND(3, levelSize - dlugosc - 3);
+		int y1 = RND(2, levelSize - 6);
 		int x2 = x1 + dlugosc;
 		int y2 = y1 + 6;
 		for(int x = x1; x < x2; ++x) for(int y = y1; y < y2; ++y) LEV(y, x) = 0;

@@ -6,12 +6,13 @@
 #include "SDL/SDL.h"
 #include <cassert>
 
-#define SFACTOR 1.1
-#define LEVEL_SIZE 64
-#define LEV(x,y) level[((x) * LEVEL_SIZE) + (y)]
+constexpr auto speedFactor{1.1};
+constexpr auto levelSize{64};
+
+#define LEV(x,y) level[((x) * levelSize) + (y)]
 #define RND(min,max) ((rand() % ((max)-(min)))+(min))
 
-typedef struct 
+struct LevelInfo
 {
 	int levelID;
 	int textureSet;
@@ -25,10 +26,9 @@ typedef struct
 	char pillarTex[16][64];
 	char debrisTex[16][64];
 	char npcTex[8][64];
+};
 
-} LevelInfo;
-
-typedef struct
+struct NPC
 {
 	double x;
 	double y;
@@ -39,50 +39,46 @@ typedef struct
 	int targetX;
 	int targetY;
 
-} NPC;
+};
 
-typedef struct NPCList
+struct NPCList
 {
 	NPC npc;
-	struct NPCList* next;
+	NPCList* next;
+};
 
-} NPCList;
-
-typedef struct
+struct Item
 {
 	double x;
 	double y;
 	int nottaken;
 	int number;
+};
 
-} Item;
-
-typedef struct ItemList
+struct ItemList
 {
 	Item item;
-	struct ItemList* next;
+	ItemList* next;
+};
 
-} ItemList;
-
-typedef struct PlayerLevel
+struct PlayerLevel
 {
 	int levelID;
-	char visited[LEVEL_SIZE * LEVEL_SIZE];
+	char visited[levelSize * levelSize];
 	ItemList* items;
 	NPCList* npcs;
 
-	struct PlayerLevel* next;
+	PlayerLevel* next;
+};
 
-} PlayerLevel;
-
-typedef struct
+struct PlayerData
 {
 	PlayerLevel* levels;
 	PlayerLevel* current;
 	
-} PlayerData;
+};
 
-typedef struct
+struct Player
 {
 	double posX, posY;
 	double dirX, dirY;
@@ -99,10 +95,9 @@ typedef struct
 	int reloadLevel;
 
 	PlayerData data;
+};
 
-} Player;
-
-typedef struct
+struct GameConfig
 {
 	int sWidth;
 	int sHeight;
@@ -112,22 +107,20 @@ typedef struct
 	int pY;
 	int dir;
 	char title[64];
+};
 
-} GameConfig;
-
-typedef struct
+struct Sprite
 {
 	double x;
 	double y;
 	int texture;
-	
-} Sprite;
+};
 
-enum GameModes
+enum class GameMode
 {
-	MODE_INIT,
-	MODE_MAIN_MENU,
-	MODE_GAME,
-	MODE_GAMEOVER,
-	MODE_QUIT
+	Initial,
+	MainMenu,
+	Game,
+	GameOver,
+	Quit
 };

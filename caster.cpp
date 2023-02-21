@@ -118,7 +118,7 @@ SDL_Surface* InitCaster(int* level, LevelInfo* li)
 	assert(wv);
 
 	numSprites = 0;
-	for(x = 0; x < LEVEL_SIZE; ++x) for(y = 0; y < LEVEL_SIZE; ++y) if(BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6) ++numSprites;
+	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y) if(BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6) ++numSprites;
 
 	if(sprite != NULL) free(sprite);
 	if(spriteOrder != NULL) free(spriteOrder);
@@ -132,14 +132,14 @@ SDL_Surface* InitCaster(int* level, LevelInfo* li)
 	
 	i = 0;
 
-	for(x = 0; x < LEVEL_SIZE; ++x) for(y = 0; y < LEVEL_SIZE; ++y)
+	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
 	{
 		u = BlockType(level, x, y);
 		if(u == 2 || u == 5 || u == 6)
 		{
 			sprite[i].x = 0.5 + x;
 			sprite[i].y = 0.5 + y;
-			sprite[i].texture = ((level[LEVEL_SIZE * x + y] / 16) % 16) + (u == 2 ? 16 : (u == 5 ? 32 : 0));
+			sprite[i].texture = ((level[levelSize * x + y] / 16) % 16) + (u == 2 ? 16 : (u == 5 ? 32 : 0));
 			++i;
 		}
 	}
@@ -235,7 +235,7 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 		sidedY = (stepY < 0) ? (rayPY - mapY) * deltadY : (mapY + 1.0 - rayPY) * deltadY;
 
 		/* lecimy promyczkiem swiatla dopoki nie trafimy na sciane albo nie wylecimy z planszy */
-		while(!hit || mapX < 0 || mapY < 0 || mapX >= LEVEL_SIZE || mapY >= LEVEL_SIZE)
+		while(!hit || mapX < 0 || mapY < 0 || mapX >= levelSize || mapY >= levelSize)
 		{
 			if(sidedX < sidedY)
 			{
@@ -250,7 +250,7 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 				side = 1;
 			}
 
-			if((worldMap[mapX * LEVEL_SIZE + mapY] % 16) == 1) hit = 1;
+			if((worldMap[mapX * levelSize + mapY] % 16) == 1) hit = 1;
 		}
 
 		if(!hit) continue;
@@ -262,7 +262,7 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 		if(dStart < 0) dStart = 0;
 		if(dEnd >= wwHeight) dEnd = wwHeight - 1;
 
-		tex = (worldMap[mapX * LEVEL_SIZE + mapY] >> 4);
+		tex = (worldMap[mapX * levelSize + mapY] >> 4);
 		if(!side && player->posX < mapX) tex >>= 8;
 		if(side)
 		{

@@ -16,7 +16,7 @@ void Shoot(int* level, Player* player)
 	for(int i = 0; i < 100; ++i)
 	{
 
-		if((!CANENTER(level[(int)bulletX * LEVEL_SIZE + (int)bulletY]%16)) || bulletX < 0 || bulletY < 0 || bulletX > LEVEL_SIZE || bulletY > LEVEL_SIZE) break;
+		if((!CANENTER(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
 		if(KillNPC(bulletX, bulletY, player)) break;
 
 		bulletX += player->dirX * 2;
@@ -94,15 +94,15 @@ void NewGame(Player* player, GameConfig* config)
 
 void MarkVisitedSub(char* visited, int x, int y)
 {
-	if(x>=0 && y>=0 && x<LEVEL_SIZE && y<LEVEL_SIZE) visited[LEVEL_SIZE*x + y] = 1;
+	if(x>=0 && y>=0 && x < levelSize && y < levelSize) visited[levelSize * x + y] = 1;
 }
 
 void MarkVisited(Player* player, int x, int y)
 {
 	char* visited = player->data.current->visited;
 
-	if(visited[LEVEL_SIZE*x + y]==2) return;
-	visited[LEVEL_SIZE*x + y] = 2;
+	if(visited[levelSize * x + y] == 2) return;
+	visited[levelSize * x + y] = 2;
 	MarkVisitedSub(visited, x - 1, y - 1);
 	MarkVisitedSub(visited, x - 1, y);
 	MarkVisitedSub(visited, x - 1, y + 1);
@@ -119,8 +119,8 @@ void MarkVisited(Player* player, int x, int y)
 
 void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, double frameTime)
 {
-	double mSpeed = frameTime * 1.6 * SFACTOR; /* pola/sekunde */
-	double rSpeed = frameTime * 1.2 * SFACTOR; /* radiany/sekunde */
+	double mSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
+	double rSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
 	double oldDir;
 	int collision, a;
 
@@ -128,36 +128,36 @@ void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, doub
 
 	if(keys[SDLK_UP])
 	{
-		collision = level[(int)(player->posX + player->dirX * mSpeed * 3) * LEVEL_SIZE + (int)player->posY] % 16;
+		collision = level[(int)(player->posX + player->dirX * mSpeed * 3) * levelSize + (int)player->posY] % 16;
 		if(CANENTER(collision)) player->posX += player->dirX * mSpeed;
-		collision = level[(int)player->posX * LEVEL_SIZE + (int)(player->posY + player->dirY * mSpeed * 3)] % 16;
+		collision = level[(int)player->posX * levelSize + (int)(player->posY + player->dirY * mSpeed * 3)] % 16;
 		if(CANENTER(collision)) player->posY += player->dirY * mSpeed;	
 		MarkVisited(player, (int)(player->posX), (int)(player->posY));
 	}
 
 	if(keys[SDLK_DOWN])
 	{
-		collision = level[(int)(player->posX - player->dirX * mSpeed * 3) * LEVEL_SIZE + (int)player->posY] % 16;
+		collision = level[(int)(player->posX - player->dirX * mSpeed * 3) * levelSize + (int)player->posY] % 16;
 		if(CANENTER(collision)) player->posX -= player->dirX * mSpeed;
-		collision = level[(int)player->posX * LEVEL_SIZE + (int)(player->posY - player->dirY * mSpeed * 3)] % 16;
+		collision = level[(int)player->posX * levelSize + (int)(player->posY - player->dirY * mSpeed * 3)] % 16;
 		if(CANENTER(collision)) player->posY -= player->dirY * mSpeed;		
 		MarkVisited(player, (int)(player->posX), (int)(player->posY));
 	}
 
 	if(keys[SDLK_z])
 	{
-		collision = level[(int)(player->posX - 3 * mSpeed * sin(atan2(player->dirY, player->dirX))) * LEVEL_SIZE + (int)player->posY] % 16;
+		collision = level[(int)(player->posX - 3 * mSpeed * sin(atan2(player->dirY, player->dirX))) * levelSize + (int)player->posY] % 16;
 		if(CANENTER(collision)) player->posX -= mSpeed * sin(atan2(player->dirY, player->dirX));
-		collision = level[(int)player->posX * LEVEL_SIZE + (int)(player->posY + 3 * mSpeed * cos(atan2(player->dirY, player->dirX)))] % 16;
+		collision = level[(int)player->posX * levelSize + (int)(player->posY + 3 * mSpeed * cos(atan2(player->dirY, player->dirX)))] % 16;
 		if(CANENTER(collision)) player->posY += mSpeed * cos(atan2(player->dirY, player->dirX));
 		MarkVisited(player, (int)(player->posX), (int)(player->posY));
 	}
 
 	if(keys[SDLK_x])
 	{
-		collision = level[(int)(player->posX + 3 * mSpeed * sin(atan2(player->dirY, player->dirX))) * LEVEL_SIZE + (int)player->posY] % 16;
+		collision = level[(int)(player->posX + 3 * mSpeed * sin(atan2(player->dirY, player->dirX))) * levelSize + (int)player->posY] % 16;
 		if(CANENTER(collision)) player->posX += mSpeed * sin(atan2(player->dirY, player->dirX));
-		collision = level[(int)player->posX * LEVEL_SIZE + (int)(player->posY - 3 * mSpeed * cos(atan2(player->dirY, player->dirX)))] % 16;
+		collision = level[(int)player->posX * levelSize + (int)(player->posY - 3 * mSpeed * cos(atan2(player->dirY, player->dirX)))] % 16;
 		if(CANENTER(collision)) player->posY -= mSpeed * cos(atan2(player->dirY, player->dirX));
 		MarkVisited(player, (int)(player->posX), (int)(player->posY));
 	}
@@ -184,9 +184,9 @@ void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, doub
 		player->planeY = oldDir * sin(-rSpeed) + player->planeY * cos(-rSpeed);
 	}
 
-	if(level[(int)player->posX * LEVEL_SIZE + (int)player->posY]%16 == 6)
+	if(level[(int)player->posX * levelSize + (int)player->posY] % 16 == 6)
 	{
-		a = level[(int)player->posX * LEVEL_SIZE + (int)player->posY];
+		a = level[(int)player->posX * levelSize + (int)player->posY];
 
 		player->level = (a >> 8) % 16;
 		player->posX = ((a >> 12) % 256) + 0.5;
