@@ -4,7 +4,7 @@ pillars/1
 ############################
 # CINFO
 ############################
-# levelID textureSet npcCount itemCount pillarTexCount debrisTexCount
+# id textureSet npcCount itemCount pillarTexCount debrisTexCount
 # pillarTex0
 # pillarTex1
 # ...

@@ -17,7 +17,7 @@ void Shoot(int* level, Player* player)
 	{
 
 		if((!CANENTER(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
-		if(KillNPC(bulletX, bulletY, player->data.current->npcs)) break;
+		if(KillNPC(bulletX, bulletY, player->currentLevel().npcs)) break;
 
 		bulletX += player->dirX * 2;
 		bulletY += player->dirY * 2;
@@ -58,30 +58,19 @@ void LoadText(char* texts)
 
 void NewGame(Player* player, GameConfig* config)
 {
-	PlayerLevel *tmp;
-
-	player->posX = config->pX + 0.5; 
+	player->posX = config->pX + 0.5;
 	player->posY = config->pY + 0.5;
 	player->dirX = - cos(config->dir * 0.7854);
 	player->dirY = - sin(config->dir * 0.7854);
 	player->planeX = - 0.77 * sin(config->dir * 0.7854);
 	player->planeY = 0.77 * cos(config->dir * 0.7854);
-	player->level = config->level;
+	player->levelId = config->level;
 	player->reloadLevel = 1;
-	player->data.current = NULL;
 
 	player->revolver = 0;
 	player->bullets = 0;
 	player->flashlight = 0;
 	player->battery = 0;
-
-	while(player->data.levels != NULL)
-	{
-		tmp = player->data.levels;
-		assert(tmp);
-		player->data.levels = player->data.levels->next;
-		free(tmp);
-	}
 }
 
 void MarkVisitedSub(char* visited, int x, int y)
@@ -91,7 +80,7 @@ void MarkVisitedSub(char* visited, int x, int y)
 
 void MarkVisited(Player* player, int x, int y)
 {
-	char* visited = player->data.current->visited;
+	char* visited = player->currentLevel().visited;
 
 	if(visited[levelSize * x + y] == 2) return;
 	visited[levelSize * x + y] = 2;
@@ -180,95 +169,11 @@ void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, doub
 	{
 		a = level[(int)player->posX * levelSize + (int)player->posY];
 
-		player->level = (a >> 8) % 16;
+		player->levelId = (a >> 8) % 16;
 		player->posX = ((a >> 12) % 256) + 0.5;
 		player->posY = ((a >> 20) % 256) + 0.5;
 		player->reloadLevel = 1;
 	}
-}
-
-void SaveGame(Player* player, const NPCs& npcs, LevelInfo* li, char* visited)
-{
-	FILE* state;
-	PlayerLevel* it;
-	int i;
-
-	assert(player);
-
-	printf("Saving state... ");
-	state = fopen("game.sav", "wb");
-	assert(state);
-
-	/* save player state */
-	fwrite((char*)player, sizeof(char), sizeof(Player) / sizeof(char), state);
-
-	/* save level states */
-	it = player->data.levels;
-	while(it != NULL)
-	{
-		assert(it);
-		/* save visited chars */
-		fwrite((char*)it, sizeof(char), sizeof(PlayerLevel) / sizeof(char), state);
-		
-		/* save npcs */
-		i = npcs.size();
-		fwrite(&i, sizeof(int), 1, state);
-		for (const auto& npc : npcs)
-        {
-            fwrite((char*)(&npc), sizeof(char), sizeof(NPC) / sizeof(char), state);
-        }
-
-		/* go to next level state */
-		it = it->next;
-	}
-
-	fclose(state);
-	SDL_Delay(80);
-	printf("OK\n");
-}
-
-void LoadGame(Player* player, NPCs& npcs, LevelInfo* li, char* visited)
-{
-	FILE* state;
-	PlayerLevel* it;
-	int i;
-
-	assert(player);
-
-	printf("Loading state... ");
-	state = fopen("game.sav", "rb");
-	assert(state);
-
-	/* clear memory */
-
-	/* load player state */
-	fread((char*)player, sizeof(char), sizeof(Player) / sizeof(char), state);
-	player->data.levels = nullptr; /* TODO: leak fix */
-	player->data.current = nullptr;
-
-	/* load level states */
-	while(!feof(state))
-	{
-		it = new PlayerLevel;
-		assert(it);
-		fread((char*)it, sizeof(char), sizeof(PlayerLevel) / sizeof(char), state);
-		it->next = player->data.levels;
-
-		/* load npc states */
-		fread(&i, sizeof(int), 1, state);
-		while(i --> 0)
-		{
-			NPC npc{};
-			fread((char*)(&npc), sizeof(char), sizeof(NPC) / sizeof(char), state);
-			npcs.emplace_back(std::move(npc));
-		}
-
-		player->data.levels = it;
-	}
-
-	fclose(state);
-	player->reloadLevel = 1;
-	printf("OK\n");
 }
 
 int OnKeyPress(SDL_Event* event, int key)

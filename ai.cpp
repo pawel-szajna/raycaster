@@ -43,10 +43,10 @@ void InitAI(int* level)
 	for(x = 1; x < levelSize; ++x) for(y = 1; y < levelSize; ++y)
 	{
 	/*	AIMap[x][y] = 0;
-		if(CANENTER(level[32*(x+1)+y]%16)) AIMap[x][y] += 1;
-		if(CANENTER(level[32*x+y+1]%16)) AIMap[x][y] += 2;
-		if(CANENTER(level[32*(x-1)+y]%16)) AIMap[x][y] += 4;
-		if(CANENTER(level[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
+		if(CANENTER(levelId[32*(x+1)+y]%16)) AIMap[x][y] += 1;
+		if(CANENTER(levelId[32*x+y+1]%16)) AIMap[x][y] += 2;
+		if(CANENTER(levelId[32*(x-1)+y]%16)) AIMap[x][y] += 4;
+		if(CANENTER(levelId[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
 		AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
 	}
 
@@ -123,7 +123,7 @@ double AI_DistanceToNearestNPC(Player* player)
 {
 	auto nearest = 100.0;
 
-    for (auto& npc : player->data.current->npcs)
+    for (auto& npc : player->currentLevel().npcs)
     {
         if (npc.alive)
         {
@@ -169,7 +169,7 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
 
 	ResetDynamicSprites();
 
-    for (auto& npc : player->data.current->npcs)
+    for (auto& npc : player->currentLevel().npcs)
     {
         if (npc.alive && npc.distance < SQR(8))
         {
@@ -200,7 +200,7 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         AddDynamicSprite(npc.x, npc.y, npcTexture);
     }
 
-    for (auto& item : player->data.current->items)
+    for (auto& item : player->currentLevel().items)
     {
         if ((int)player->posX == (int)item.x and
             (int)player->posY == (int)item.y and

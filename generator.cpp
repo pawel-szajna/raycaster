@@ -116,7 +116,7 @@ void bonus_room(int* level)
 
 void generate_map(int* level, int pX, int pY, int bonusroom)
 {
-	printf("Generating level structure... ");
+	printf("Generating levelId structure... ");
 	clear_level(level);
 	depth_first(level, pX, pY, -1, -1, -1, -1, -1);
 	for(int i = 0; i < 12; ++i) random_room(level);
@@ -125,7 +125,7 @@ void generate_map(int* level, int pX, int pY, int bonusroom)
 	if(bonusroom) bonus_room(level);
 	wall_fix(level);
 	level[levelSize * levelSize - 1] = 2;
-	/*drawmap(level, pX, pY);*/
+	/*drawmap(levelId, pX, pY);*/
 	printf("OK\n");
 }
 

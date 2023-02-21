@@ -72,7 +72,7 @@ SDL_Surface* DrawMap(int* level, Player* player)
 	SDL_Rect b1 = { 0, 0, 8, 8 }, b2 = { 0, 0, 8, 8 };
 	int x, y;
 	char filename[64];
-	char* visited = player->data.current->visited;
+	char* visited = player->currentLevel().visited;
 	int posX = (int)player->posX;
 	int posY = (int)player->posY;
 	double dirX = player->dirX;

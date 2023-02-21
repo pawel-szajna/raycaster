@@ -29,7 +29,6 @@ int main(int argc, char** argv)
 	int flashlight = 1;
 	int popup = 0;
 	int popupmap = 0;
-	int i, found;
 	int danger_level;
 	GameMode mode;
 
@@ -92,8 +91,7 @@ int main(int argc, char** argv)
 	SDL_ShowCursor(SDL_DISABLE);
 
 	SDL_SetColorKey(shade, SDL_SRCCOLORKEY, 0x00ffffff);
-	
-	player.data.levels = NULL;
+
 	mode = GameMode::Initial;
 
 	/* for map drawing */
@@ -168,50 +166,25 @@ int main(int argc, char** argv)
 		{
 			if(player.reloadLevel) /* load new level */
 			{
-				sprintf(filename, "map/level%d.dat", player.level);
+				sprintf(filename, "map/level%d.dat", player.levelId);
 				LoadLevel((int*)level, &levelinfo, npcs, filename);
 				generate_map((int*)level, (int)player.posX, (int)player.posY, 1);
 				npcs = generate_npcs((int*)level);
 				InitAI((int*)level);
 				InitUI();
-				sprintf(filename, "%s: Level %d", config.title, player.level);
+				sprintf(filename, "%s: Level %d", config.title, player.levelId);
 				SDL_WM_SetCaption(filename, NULL);
 				SDL_FreeSurface(worldview);
 				worldview = InitCaster((int*)level, &levelinfo);
 				assert(worldview);
-				player.data.current = player.data.levels;
-				found = 0;
 
-				while((player.data.current != NULL) && !found) /* check for this level state */
-				{
-					if(player.data.current->levelID == player.level) found = 1;
-					else player.data.current = player.data.current->next;
-				}
+                player.switchLevel();
+				npcs = player.currentLevel().npcs;
+                ResetAI(npcs);
 
-				if(!found) /* this level hasn't been visited yet, prepare its entry */
-				{
-					player.data.current = new PlayerLevel;
-					assert(player.data.current);
-
-					player.data.current->levelID = player.level;
-					player.data.current->next = player.data.levels;
-					player.data.current->npcs = NPCs{};
-                    npcs = player.data.current->npcs;
-
-					player.data.current->items = Items{};
-
-					for(i = 0; i < levelSize * levelSize; ++i) player.data.current->visited[i] = 0;
-					player.data.levels = player.data.current;
-				}
-
-				if (found)
-                {
-                    ResetAI(npcs);
-                }
-
-				AddItem(player.data.current->items, 27, 46, 0);
-				AddItem(player.data.current->items, 27, 47, 1);
-				AddItem(player.data.current->items, 27, 48, 3);
+				AddItem(player.currentLevel().items, 27, 46, 0);
+				AddItem(player.currentLevel().items, 27, 47, 1);
+				AddItem(player.currentLevel().items, 27, 48, 3);
 
 				player.reloadLevel = 0;
 			}

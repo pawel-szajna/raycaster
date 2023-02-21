@@ -6,6 +6,8 @@
 #include "SDL/SDL.h"
 #include <cassert>
 #include <vector>
+#include <algorithm>
+#include <unordered_map>
 
 constexpr auto speedFactor{1.1};
 constexpr auto levelSize{64};
@@ -55,19 +57,19 @@ using Items = std::vector<Item>;
 
 struct PlayerLevel
 {
-	int levelID;
-	char visited[levelSize * levelSize];
-	Items items;
-	NPCs npcs;
+	int id;
+	char visited[levelSize * levelSize]{};
+	Items items{};
+	NPCs npcs{};
 
-	PlayerLevel* next;
+    explicit PlayerLevel(int id) : id(id) {}
 };
+
+using PlayerLevels = std::unordered_map<int, PlayerLevel>;
 
 struct PlayerData
 {
-	PlayerLevel* levels;
-	PlayerLevel* current;
-	
+    PlayerLevels levels{};
 };
 
 struct Player
@@ -83,10 +85,24 @@ struct Player
 	int bullets;
 	int battery;
 
-	int level;
+	int levelId;
 	int reloadLevel;
 
-	PlayerData data;
+    PlayerLevel& currentLevel() { return current->second; }
+
+    void switchLevel()
+    {
+        if (not levels.contains(levelId))
+        {
+            levels.emplace(levelId, PlayerLevel(levelId));
+        }
+
+        current = levels.find(levelId);
+    }
+
+private:
+	PlayerLevels levels{};
+    PlayerLevels::iterator current;
 };
 
 struct GameConfig

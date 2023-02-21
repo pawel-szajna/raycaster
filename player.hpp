@@ -9,9 +9,6 @@ void LoadText(char* texts);
 void HandleMovement(Player* player, Uint8* keys, int* level, char* visited, double frameTime);
 void Shoot(int* level, Player* player);
 
-void LoadGame(Player* player, NPCs& npcs, LevelInfo* li, char* visited);
-void SaveGame(Player* player, const NPCs& npcs, LevelInfo* li, char* visited);
-
 int OnKeyPress(SDL_Event* event, int key);
 
 int Blink(int battery);
