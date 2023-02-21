@@ -14,6 +14,11 @@ void Surface::render(SDL_Surface* target, SDL_Rect& coords)
     SDL_BlitSurface(surface, nullptr, target, &coords);
 }
 
+void Surface::render(Surface& target, SDL_Rect coords, SDL_Rect subset)
+{
+    SDL_BlitSurface(surface, &subset, *target, &coords);
+}
+
 void Surface::render(Surface& target, SDL_Rect& coords, SDL_Rect& subset)
 {
     SDL_BlitSurface(surface, &subset, *target, &coords);

@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 				paused = 1;
 				popupmap = 1;
 
-				popupWindow = makeWindow(556, 556, "Mapa", &r8, &config);
+				popupWindow = makeWindow(556, 556, "Mapa", &r8, config);
 				map = DrawMap((int*)level, &player);
 				assert(map);
 			}
@@ -253,7 +253,7 @@ int main(int argc, char** argv)
 
 				if(popup)
 				{
-					popupWindow = messageWindow("", texts[popup], &r8, &config);
+					popupWindow = messageWindow("", texts[popup], &r8, config);
 					paused = 1;
 					popup = 1;
 				}

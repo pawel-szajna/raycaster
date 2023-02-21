@@ -30,6 +30,7 @@ public:
 
     void render(Surface& target, SDL_Rect& coords);
     void render(SDL_Surface* target, SDL_Rect& coords); // TODO: remove when no longer needed
+    void render(Surface& target, SDL_Rect coords, SDL_Rect subset);
     void render(Surface& target, SDL_Rect& coords, SDL_Rect& subset);
 
 private:

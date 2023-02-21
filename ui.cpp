@@ -25,7 +25,7 @@ void InitUI()
 	printf("OK\n");
 }
 
-sdl::Surface messageWindow(const std::string& title, const std::string& msg, SDL_Rect* target, GameConfig* cfg)
+sdl::Surface messageWindow(const std::string& title, const std::string& msg, SDL_Rect* target, const GameConfig& cfg)
 {
 	SDL_Rect r = { 24, 52, 0, 0 }, p = { 24, 24, 0, 0 };
 
@@ -37,57 +37,49 @@ sdl::Surface messageWindow(const std::string& title, const std::string& msg, SDL
 	return window;
 }
 
-sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title, SDL_Rect* target, GameConfig* cfg)
+sdl::Surface makeWindow(int width, int height, const std::optional<std::string>& title, SDL_Rect* target, const GameConfig& cfg)
 {
-	SDL_Surface* tmp;
-	SDL_Rect r1 = { 0, 0, 8, 8 }, r2 = { 0, 0, 8, 8 };
-	int x, y;
+    SDL_Rect box8px{0, 0, 8, 8};
+	Sint16 x, y, w = (Sint16)width, h = (Sint16)height;
 
 	target->w = w;
 	target->h = h;
-	target->x = cfg->sWidth / 2 - w / 2;
-	target->y = cfg->sHeight / 2 - h / 2;
+	target->x = cfg.sWidth / 2 - w / 2;
+	target->y = cfg.sHeight / 2 - h / 2;
 
     auto window = sdl::make_surface(w, h);
 
     auto& textureBg = sdl::textures.get("gfx/ui/w_bg.bmp");
-	for(x = 0; x < w; x += 8) for(y = 0; y < h; y += 8) { r1.x = x; r1.y = y; textureBg.render(window, r1, r2); }
+	for(x = 0; x < w; x += 8) for(y = 0; y < h; y += 8) textureBg.render(window, {x, y, 8, 8}, box8px);
 
     auto& textureTop = sdl::textures.get("gfx/ui/b_top.bmp");
-	r1.y = 0;
-	for(x = 0; x < w; x += 8) { r1.x = x; textureTop.render(window, r1, r2); }
+	for(x = 0; x < w; x += 8) textureTop.render(window, {x, 0, 8, 8}, box8px);
 
 	auto& textureBottom = sdl::textures.get("gfx/ui/b_down.bmp");
-    r1.y = h - 8;
-	for(x = 0; x < w; x += 8) { r1.x = x; textureBottom.render(window, r1, r2); }
+	for(x = 0; x < w; x += 8) textureBottom.render(window, {x, static_cast<Sint16>(h - 8), 8, 8}, box8px);
 
 	auto& textureLeft = sdl::textures.get("gfx/ui/b_left.bmp");
-    r1.x = 0;
-	for(x = 0; x < w; x += 8) { r1.y = x; textureLeft.render(window, r1, r2); }
+	for(y = 0; y < w; y += 8) textureLeft.render(window, {0, y, 8, 8}, box8px);
 	
 	auto& textureRight = sdl::textures.get("gfx/ui/b_right.bmp");
-    r1.x = w - 8;
-	for(x = 0; x < w; x += 8) { r1.y = x; textureRight.render(window, r1, r2); }
+	for(y = 0; y < w; y += 8) textureRight.render(window, {static_cast<Sint16>(w - 8), y, 8, 8}, box8px);
 
 	auto& textureCornerTopLeft = sdl::textures.get("gfx/ui/b_ctl.bmp");
-	r1.x = 0; r1.y = 0;
-    textureCornerTopLeft.render(window, r1, r2);
+    textureCornerTopLeft.render(window, {0, 0, 8, 8}, box8px);
 
 	auto& textureCornerTopRight = sdl::textures.get("gfx/ui/b_ctr.bmp");
-	r1.x = w - 8; r1.y = 0;
-    textureCornerTopRight.render(window, r1, r2);
+    textureCornerTopRight.render(window, {static_cast<Sint16>(w - 8), 0, 8, 8}, box8px);
 
 	auto& textureCornerBottomLeft = sdl::textures.get("gfx/ui/b_cdl.bmp");
-	r1.x = 0; r1.y = h - 8;
-    textureCornerBottomLeft.render(window, r1, r2);
+    textureCornerBottomLeft.render(window, {0, static_cast<Sint16>(h - 8), 8, 8}, box8px);
 
 	auto& textureCornerBottomRight = sdl::textures.get("gfx/ui/b_cdr.bmp");
-	r1.x = w - 8; r1.y = h - 8;
-    textureCornerBottomRight.render(window, r1, r2);
+    textureCornerBottomRight.render(window, {static_cast<Sint16>(w - 8), static_cast<Sint16>(h - 8), 8, 8}, box8px);
 
 	if (title.has_value())
 	{
-        uiFontHeader.render(window, r1, *title);
+        SDL_Rect tgt{8, 8, 0, 0};
+        uiFontHeader.render(window, tgt, *title);
 	}
 
 	return window;
