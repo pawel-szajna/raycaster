@@ -5,6 +5,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace sdl
 {
@@ -26,6 +27,10 @@ public:
     SDL_Surface * operator->() { return surface; }
     const SDL_Surface * operator*() const { return surface; }
     const SDL_Surface * operator->() const { return surface; }
+
+    void render(Surface& target, SDL_Rect& coords);
+    void render(SDL_Surface* target, SDL_Rect& coords); // TODO: remove when no longer needed
+    void render(Surface& target, SDL_Rect& coords, SDL_Rect& subset);
 
 private:
     SDL_Surface* surface{nullptr};
@@ -64,6 +69,17 @@ public:
 private:
     TTF_Font* font{nullptr};
 };
+
+class TextureCache
+{
+public:
+    Surface& get(const std::string& path);
+
+private:
+    std::unordered_map<std::string, Surface> textures{};
+};
+
+extern TextureCache textures;
 
 Surface make_surface(int width, int height);
 Surface make_alpha_surface(int width, int height);

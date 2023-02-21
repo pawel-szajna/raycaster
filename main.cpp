@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 	SDL_Surface* map;
 	SDL_Surface* shade;
 	SDL_Surface* noise_big;
-	SDL_Surface* popupWindow;
+	std::optional<sdl::Surface> popupWindow{};
 	SDL_Surface* gun_hand;
 	SDL_Surface* gun_shoot;
 
@@ -204,16 +204,19 @@ int main(int argc, char** argv)
 			/* draw UI */
 
 			/* draw popups */
-			if(popup) SDL_BlitSurface(popupWindow, NULL, screen, &r8);
+			if(popupWindow.has_value())
+            {
+                popupWindow->render(screen, r8);
+            }
+
 			if(popupmap) SDL_BlitSurface(map, 0, screen, &r4);
 
 			/* close popups */
 			if(popup && OnKeyPress(&event, SDLK_RETURN))
 			{
 				if(popupmap) SDL_FreeSurface(map);
-				SDL_FreeSurface(popupWindow);
+                popupWindow = std::nullopt;
 
-				popup = 0;
 				popupmap = 0;
 				paused = 0;
 			}
@@ -222,12 +225,10 @@ int main(int argc, char** argv)
 			if(OnKeyPress(&event, SDLK_m) && !popup && !popupmap)
 			{
 				paused = 1;
-				popup = 1;
 				popupmap = 1;
 
-				popupWindow = MakeWindow(556, 556, "Mapa", &r8, &config);
+				popupWindow = makeWindow(556, 556, "Mapa", &r8, &config);
 				map = DrawMap((int*)level, &player);
-				assert(popupWindow);
 				assert(map);
 			}
 
@@ -252,8 +253,7 @@ int main(int argc, char** argv)
 
 				if(popup)
 				{
-					popupWindow = MessageWindow("", texts[popup], &r8, &config);
-					assert(popupWindow);
+					popupWindow = messageWindow("", texts[popup], &r8, &config);
 					paused = 1;
 					popup = 1;
 				}

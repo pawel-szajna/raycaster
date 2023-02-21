@@ -3,6 +3,8 @@
 #include "data.hpp"
 #include "sdl.hpp"
 
+#include <optional>
+
 extern sdl::Font uiFont;
 extern sdl::Font uiFontHeader;
 extern sdl::Font uiFontNotice;
@@ -11,5 +13,5 @@ extern SDL_Color uiFG;
 extern SDL_Color uiBG;
 
 void InitUI();
-SDL_Surface* MakeWindow(int w, int h, const char* title, SDL_Rect* target, GameConfig* cfg);
-SDL_Surface* MessageWindow(const char* title, const char* message, SDL_Rect* target, GameConfig* cfg);
+sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title, SDL_Rect* target, GameConfig* cfg);
+sdl::Surface messageWindow(const std::string& title, const std::string& message, SDL_Rect* target, GameConfig* cfg);
