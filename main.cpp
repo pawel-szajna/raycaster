@@ -39,7 +39,6 @@ int main(int argc, char** argv)
 	int paused = 0;
 	int flashlight = 1;
 	int popup = 0;
-	int popupmap = 0;
 	int danger_level;
 	GameMode mode;
 
@@ -50,11 +49,10 @@ int main(int argc, char** argv)
 	LevelInfo levelinfo;
 	NPCs npcs{};
 
-	SDL_Surface* screen;
-	SDL_Surface* map;
 	SDL_Surface* shade;
 	SDL_Surface* noise_big;
 	std::optional<sdl::Surface> popupWindow{};
+    std::optional<sdl::Surface> popupMap{};
 	SDL_Surface* gun_hand;
 	SDL_Surface* gun_shoot;
 
@@ -85,13 +83,12 @@ int main(int argc, char** argv)
 	LoadText((char*)texts);
 	InitUI();
 	
-	screen = SDL_SetVideoMode(config.sWidth, config.sHeight, 32, SDL_HWSURFACE | (config.fullScreen ? SDL_FULLSCREEN : 0));
+	auto screen = sdl::Surface(SDL_SetVideoMode(config.sWidth, config.sHeight, 32, SDL_HWSURFACE | (config.fullScreen ? SDL_FULLSCREEN : 0)));
 	auto worldview = sdl::make_surface(wwWidth, wwHeight);
     auto noise = sdl::make_alpha_surface(160, 90);
 
 	shade = SDL_LoadBMP("gfx/shade.bmp");
 
-	assert(screen);
 	assert(shade);
 
 	SDL_ShowCursor(SDL_DISABLE);
@@ -131,8 +128,8 @@ int main(int argc, char** argv)
             uiFontTitle.render(worldview, r1, "Techdemo");
 
 			SDL_BlitSurface(noise_big, 0, *worldview, 0);
-			SDL_SoftStretch(*worldview, 0, screen, 0);
-			SDL_UpdateRect(screen, 0, 0, 0, 0);
+			SDL_SoftStretch(*worldview, 0, *screen, 0);
+			SDL_UpdateRect(*screen, 0, 0, 0, 0);
 			SDL_Delay(40);
 
 			SDL_PollEvent(&event);
@@ -198,42 +195,41 @@ int main(int argc, char** argv)
 			noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
 			assert(noise_big);
 			SDL_BlitSurface(noise_big, 0, *worldview, 0);
-			SDL_SoftStretch(*worldview, 0, screen, 0);
+			SDL_SoftStretch(*worldview, 0, *screen, 0);
 			SPG_Free(noise_big);
 
 			/* draw UI */
 
 			/* draw popups */
-			if(popupWindow.has_value())
+			if (popupWindow.has_value())
             {
                 popupWindow->render(screen, r8);
             }
 
-			if(popupmap) SDL_BlitSurface(map, 0, screen, &r4);
+			if (popupMap.has_value())
+            {
+                popupMap->render(screen, r4);
+            }
 
 			/* close popups */
 			if(popup && OnKeyPress(&event, SDLK_RETURN))
 			{
-				if(popupmap) SDL_FreeSurface(map);
+				popupMap = std::nullopt;
                 popupWindow = std::nullopt;
-
-				popupmap = 0;
 				paused = 0;
 			}
 
 			/* map */
-			if(OnKeyPress(&event, SDLK_m) && !popup && !popupmap)
+			if(OnKeyPress(&event, SDLK_m) and not popupWindow.has_value() and not popupMap.has_value())
 			{
 				paused = 1;
-				popupmap = 1;
 
 				popupWindow = makeWindow(556, 556, "Mapa", &r8, config);
-				map = DrawMap((int*)level, &player);
-				assert(map);
+				popupMap = drawMap((int*)level, player);
 			}
 
 			/* draw everything */
-			SDL_UpdateRect(screen, 0, 0, 0, 0);
+			SDL_UpdateRect(*screen, 0, 0, 0, 0);
 
 			SDL_PollEvent(&event);
 			oldTime = newTime;
@@ -295,10 +291,10 @@ int main(int argc, char** argv)
 			noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
 			assert(noise_big);
 			SDL_BlitSurface(noise_big, 0, *worldview, 0);
-			SDL_SoftStretch(*worldview, 0, screen, 0);
+			SDL_SoftStretch(*worldview, 0, *screen, 0);
 			SPG_Free(noise_big);
 			SDL_PollEvent(&event);
-			SDL_UpdateRect(screen, 0, 0, 0, 0);
+			SDL_UpdateRect(*screen, 0, 0, 0, 0);
 			SDL_Delay(40);
 		}
 		danger_level = 128;
