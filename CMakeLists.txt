@@ -14,7 +14,7 @@ add_library(
     ui.cpp
 )
 
-target_compile_options(libraycaster PUBLIC -Wall -pedantic)
+target_compile_options(libraycaster PRIVATE -Wall -pedantic)
 
 add_subdirectory(sprig)
 

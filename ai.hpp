@@ -10,4 +10,4 @@ bool KillNPC(double x, double y, NPCs& npcs);
 int AI_Tick(Player* player, double frameTime, int flashlight);
 double AI_DistanceToNearestNPC(Player* player);
 void AddNPC(NPCs& npcs, double x, double y, int firstTexture);
-ItemList* AddItem(ItemList* item, double x, double y, int num);
+void AddItem(Items& items, double x, double y, int num);

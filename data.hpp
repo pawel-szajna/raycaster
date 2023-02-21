@@ -51,17 +51,13 @@ struct Item
 	int number;
 };
 
-struct ItemList
-{
-	Item item;
-	ItemList* next;
-};
+using Items = std::vector<Item>;
 
 struct PlayerLevel
 {
 	int levelID;
 	char visited[levelSize * levelSize];
-	ItemList* items;
+	Items items;
 	NPCs npcs;
 
 	PlayerLevel* next;

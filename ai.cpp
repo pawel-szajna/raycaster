@@ -67,20 +67,10 @@ void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
     npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, 1, 0, 0});
 }
 
-ItemList* AddItem(ItemList* item, double x, double y, int num)
+void AddItem(Items& items, double x, double y, int num)
 {
-	auto newitems = new ItemList;
-
-	assert(newitems);
 	printf("Adding new item... ");
-	newitems->item.x = x + 0.5;
-	newitems->item.y = y + 0.5;
-	newitems->item.number = num;
-	newitems->item.nottaken = 1;
-	newitems->next = item;
-	printf("OK\n");
-
-	return newitems;
+    items.push_back(Item{x + 0.5, y + 0.5, 1, num});
 }
 
 void UpdateNode(int cx, int cy, int tx, int ty, int value)
@@ -168,16 +158,16 @@ bool KillNPC(double x, double y, NPCs& npcs)
 
 int AI_Tick(Player* player, double frameTime, int flashlight)
 {
-	ItemList* currentitems;
 	double distance, target;
-	int popup=0;
+	int popup{};
 
 	lastTick += frameTime;
-	if(lastTick < TICK_FREQUENCY) return popup;
+	if(lastTick < TICK_FREQUENCY)
+    {
+        return popup;
+    }
 
 	ResetDynamicSprites();
-
-	currentitems = player->data.current->items;
 
     for (auto& npc : player->data.current->npcs)
     {
@@ -210,29 +200,45 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         AddDynamicSprite(npc.x, npc.y, npcTexture);
     }
 
-	while(currentitems != NULL) /* handle items */
-	{	
-		if((int)player->posX == (int)currentitems->item.x && (int)player->posY == (int)currentitems->item.y && currentitems->item.nottaken)
-		{
-			switch(currentitems->item.number)
-			{
-				case 0: player->revolver = 1; break;
-				case 1: player->flashlight = 1; break;
-				case 2: player->bullets += 5; break;
-				case 3: player->battery += 50; break;
-				default: assert(!("Unknown item ID!"));
-			}
-			popup = currentitems->item.number+5;
-			currentitems->item.nottaken = 0;
-		}
+    for (auto& item : player->data.current->items)
+    {
+        if ((int)player->posX == (int)item.x and
+            (int)player->posY == (int)item.y and
+            item.nottaken)
+        {
+            switch (item.number)
+            {
+            case 0:
+                player->revolver = 1;
+                break;
+            case 1:
+                player->flashlight = 1;
+                break;
+            case 2:
+                player->bullets += 5;
+                break;
+            case 3:
+                player->battery += 50;
+                break;
+            default:
+                assert(!("Unknown item ID!"));
+            }
 
-		if(currentitems->item.nottaken) AddDynamicSprite(currentitems->item.x, currentitems->item.y, 96 + currentitems->item.number);
-		currentitems = currentitems->next;
-	}
+            popup = item.number + 5;
+            item.nottaken = 0;
+        }
 
-	if(player->battery > 0 && flashlight) player->battery--;
+        if (item.nottaken)
+        {
+            AddDynamicSprite(item.x, item.y, 96 + item.number);
+        }
+    }
+
+    if (player->battery and flashlight)
+    {
+        player->battery--;
+    }
 
 	lastTick = 0;
-
 	return popup;
 }

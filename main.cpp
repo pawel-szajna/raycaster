@@ -198,7 +198,7 @@ int main(int argc, char** argv)
 					player.data.current->npcs = NPCs{};
                     npcs = player.data.current->npcs;
 
-					player.data.current->items = NULL;
+					player.data.current->items = Items{};
 
 					for(i = 0; i < levelSize * levelSize; ++i) player.data.current->visited[i] = 0;
 					player.data.levels = player.data.current;
@@ -209,9 +209,9 @@ int main(int argc, char** argv)
                     ResetAI(npcs);
                 }
 
-				player.data.current->items = AddItem(player.data.current->items, 27, 46, 0);
-				player.data.current->items = AddItem(player.data.current->items, 27, 47, 1);
-				player.data.current->items = AddItem(player.data.current->items, 27, 48, 3);
+				AddItem(player.data.current->items, 27, 46, 0);
+				AddItem(player.data.current->items, 27, 47, 1);
+				AddItem(player.data.current->items, 27, 48, 3);
 
 				player.reloadLevel = 0;
 			}
