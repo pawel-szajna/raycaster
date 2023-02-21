@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 #define CANENTER(x) (!((x)==1 || (x)==2))
 
@@ -36,7 +37,7 @@ void LoadText(char* texts)
     FILE* txt;
     char text[128];
 
-    printf("Loading texts... ");
+    spdlog::info("Loading texts...");
     txt = fopen("txt/eng.txt", "r");
     assert(txt);
     for(int i = 0; i < 6; ++i)
@@ -46,7 +47,6 @@ void LoadText(char* texts)
         texts[128 * i + strlen(text) - 1] = '\0'; /* debil zostawia znak nowej linii w stringu */
     }
     fclose(txt);
-    printf("OK\n");
 }
 
 Player::Player(const GameConfig& config) :

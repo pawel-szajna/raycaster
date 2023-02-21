@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 #include "ai.hpp"
 #include "player.hpp"
@@ -18,7 +19,7 @@ void LoadLevel(int* level, LevelInfo* li, NPCs& npcs, const char* filename)
     int dx, dy, dz;
     FILE* data;
 
-    printf("Loading map %s...\n", filename);
+    spdlog::info("Loading map {}...", filename);
     data = fopen(filename, "rb");
     assert(data);
     fread((char*)(li), sizeof(char), sizeof(LevelInfo) / sizeof(char), data);

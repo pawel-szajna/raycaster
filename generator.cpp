@@ -1,23 +1,12 @@
 #include "generator.hpp"
 
+#include <spdlog/spdlog.h>
+
 void clear_level(int* level)
 {
     for(int i = 0; i < levelSize; ++i)
         for(int j = 0; j < levelSize; ++j)
             level[levelSize * i + j] = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
-}
-
-void drawmap(int* level, int pX, int pY)
-{
-    for(int i = 0; i < levelSize; ++i)
-    {
-        for(int j = 0; j < levelSize; ++j)
-        {
-            if(pX == i && pY == j) printf("@");
-            else printf("%c", level[levelSize * i + j] ? '#' : ' ');
-        }
-        printf("\n");
-    }
 }
 
 void wall_fix(int* level)
@@ -95,7 +84,6 @@ NPCs generate_npcs(int* level)
         dy = rand() % levelSize;
         if(!LEV(dx,dy))
         {
-            printf("Spawning headless at %d:%d (block = %d)\n", dx, dy, LEV(dx, dy));
             --npcsToGenerate;
             AddNPC(npcs, dx, dy, 0);
         }
@@ -116,7 +104,7 @@ void bonus_room(int* level)
 
 void generate_map(int* level, int pX, int pY, int bonusroom)
 {
-    printf("Generating levelId structure... ");
+    spdlog::info("Generating level structure");
     clear_level(level);
     depth_first(level, pX, pY, -1, -1, -1, -1, -1);
     for(int i = 0; i < 12; ++i) random_room(level);
@@ -126,7 +114,6 @@ void generate_map(int* level, int pX, int pY, int bonusroom)
     wall_fix(level);
     level[levelSize * levelSize - 1] = 2;
     /*drawmap(levelId, pX, pY);*/
-    printf("OK\n");
 }
 
 void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)

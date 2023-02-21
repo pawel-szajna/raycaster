@@ -7,6 +7,7 @@
 #include "sdl.hpp"
 
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 #define SQR(x) ((x)*(x))
 
@@ -93,7 +94,7 @@ void LoadTexture(Uint32* memory, const char* filename)
 
     assert(memory);
     data = fopen(filename, "rb");
-    if(!data) printf("\n\n** CASTER ERROR **\nFile not found: %s!\n", filename);
+    if(!data) spdlog::warn("File not found: {}!", filename);
     assert(data);
     for(y = 0; y < (texWidth * texHeight); ++y)
     {
@@ -110,7 +111,7 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
     int i, x, y, u;
     char filename[128];
 
-    printf("Initializing caster... ");
+    spdlog::info("Initializing caster");
     assert(level);
     assert(li);
 
@@ -143,7 +144,7 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
         }
     }
 
-    printf("OK\nLoading textures... ");
+    spdlog::info("Loading textures");
 
     for(x = 1; x <= (li->textureSetSize); ++x)
     {
@@ -180,8 +181,6 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
 
     LoadTexture(textures[0], "gfx/transparent.raw");
     LoadTexture(textures[10], "gfx/portal.raw");
-
-    printf("OK\n");
 
     return wv;
 }

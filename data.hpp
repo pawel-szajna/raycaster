@@ -66,17 +66,7 @@ struct GameConfig
     int dir;
     char title[64];
 
-    GameConfig()
-    {
-        FILE* cfile;
-
-        printf("Loading configuration file... ");
-        cfile = fopen("ray.cfg", "r");
-        assert(cfile);
-        fscanf(cfile, "%d %d %d %d %d %d %d %[^\n]", &sWidth, &sHeight, &fullScreen, &level, &pX, &pY, &dir, title);
-        fclose(cfile);
-        printf("OK\n");
-    }
+    GameConfig();
 };
 
 struct Sprite

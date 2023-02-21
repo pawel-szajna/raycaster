@@ -3,6 +3,12 @@ project(raycaster)
 
 set(CMAKE_CXX_STANDARD 23)
 
+if(NOT TARGET spdlog)
+    find_package(spdlog REQUIRED)
+endif()
+
+add_compile_definitions(SPDLOG_USE_STD_FORMAT)
+
 add_library(
     libraycaster
     ai.cpp
@@ -40,4 +46,5 @@ target_link_libraries(
     SDL_ttf
     m
     sprig
+    spdlog::spdlog
 )

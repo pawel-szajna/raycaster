@@ -41,14 +41,7 @@ class Font
 {
 public:
     explicit Font(TTF_Font* source) : font(source) {}
-    Font(const std::string& file, int size)
-    {
-        font = TTF_OpenFont(file.c_str(), size);
-        if (font == nullptr)
-        {
-            throw std::runtime_error("Could not open font file");
-        }
-    }
+    Font(const std::string& file, int size);
 
     Font() = default; // TODO: "=delete" me when code is ready
     Font(const Font& other) = delete;

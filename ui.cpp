@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <string>
+#include <spdlog/spdlog.h>
 
 sdl::Font uiFont;
 sdl::Font uiFontHeader;
@@ -22,7 +23,7 @@ void InitUI()
     uiFG.r = 0; uiFG.g = 0; uiFG.b = 0;
     uiBG.r = 255; uiBG.g = 255; uiBG.b = 255;
 
-    printf("OK\n");
+    spdlog::info("Fonts loaded succesfully");
 }
 
 sdl::Surface messageWindow(const std::string& title, const std::string& msg, SDL_Rect* target, const GameConfig& cfg)

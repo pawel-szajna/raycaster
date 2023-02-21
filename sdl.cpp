@@ -1,5 +1,7 @@
 #include "sdl.hpp"
 
+#include <spdlog/spdlog.h>
+
 namespace sdl
 {
 TextureCache textures{}; // TODO: find a better place for this than global
@@ -24,6 +26,17 @@ void Surface::render(Surface& target, SDL_Rect& coords, SDL_Rect& subset)
     SDL_BlitSurface(surface, &subset, *target, &coords);
 }
 
+Font::Font(const std::string& file, int size)
+{
+    spdlog::debug("Loading font {}", file);
+    font = TTF_OpenFont(file.c_str(), size);
+    if (font == nullptr)
+    {
+        spdlog::error("Could not load font {}", file);
+        throw std::runtime_error("Could not open font file");
+    }
+}
+
 void Font::render(Surface& target, SDL_Rect& coords, const std::string& text)
 {
     Surface textSurface(TTF_RenderUTF8_Shaded(font, text.c_str(), SDL_Color{0, 0, 0}, SDL_Color{255, 255, 255}));
@@ -40,7 +53,7 @@ Surface& TextureCache::get(const std::string& path)
 {
     if (not textures.contains(path))
     {
-        printf("Loading texture not in cache: %s", path.c_str());
+        spdlog::debug("Loading texture not in cache: {}", path);
         textures.emplace(path, Surface(SDL_LoadBMP(path.c_str())));
     }
 

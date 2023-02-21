@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cmath>
 #include <ctime>
+#include <spdlog/spdlog.h>
 
 #include "data.hpp"
 #include "level.hpp"
@@ -72,13 +73,14 @@ int main(int argc, char** argv)
 
     srand(time(NULL));
 
-    printf("RCFPGE Engine                                                        version 0.4"
-           "================================================================================\n");
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Raycaster demo, version 2023");
 
     SDL_Init(SDL_INIT_EVERYTHING);
     TTF_Init();
 
     GameConfig config{};
+
     Player player(config);
     LoadText((char*)texts);
     InitUI();
@@ -255,7 +257,6 @@ int main(int argc, char** argv)
                 }
             }
 
-            /*printf("Nearest headless: %f\n", nearest);*/
             danger_level = (nearest < 4) ? ( (nearest < 0.5) ? 128 : ceil(nearest * (nearest * (5.9242 * nearest - 39.9883) + 35.5452) + 119.484) ) : (!(rand() % 5) ? 2 : 1);
 
             /* player dies */
@@ -302,11 +303,13 @@ int main(int argc, char** argv)
         break;
 
         case GameMode::Quit:
-        SDL_Quit();
-        return 0;
-        break;
+            spdlog::info("Quitting");
+            SDL_Quit();
+            return 0;
+            break;
 
         default:
-        printf("Invalid game mode!\n");
+            spdlog::critical("Invalid game mode!");
+            return 1;
     }
 }

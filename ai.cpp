@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 #define CANENTER(x) 	(!((x)==1 || (x)==2))
 #define SQR(x) 			((x)*(x))
@@ -51,27 +52,23 @@ void InitAI(int* level)
         if(CANENTER(levelId[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
         AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
     }
-
-/*test MIN2 i MIN4*/
-/*printf("1 2 : %d\n7 3 : %d\n1 3 7 4 : %d\n8 3 5 5 : %d\n9 4 1 7 : %d\n8 5 9 0 : %d\n\n", MIN2(1,2), MIN2(7,3), MIN4(1,3,7,4), MIN4(8,3,5,5), MIN4(9,4,1,7),MIN4(8,5,9,0));*/
-    /*for(x = 0; x < levelSize; ++x) { for(y = 0; y < levelSize; ++y) printf(AIMap[x][y] ? " " : "#"); printf("\n"); }*/
 }
 
 void ResetAI(NPCs& npcs)
 {
-    printf("Initializing artificial intelligence... ");
+    spdlog::info("AI reset");
     npcs.clear();
 }
 
 void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
 {
-    printf("Adding new NPC... ");
+    spdlog::debug("Adding new NPC [{:1.0f};{:1.0f}]", x, y);
     npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, 1, 0, 0});
 }
 
 void AddItem(Items& items, double x, double y, int num)
 {
-    printf("Adding new item... ");
+    spdlog::debug("Adding new item #{} [{:1.0f};{:1.0f}]", num, x, y);
     items.push_back(Item{x + 0.5, y + 0.5, 1, num});
 }
 
@@ -97,15 +94,6 @@ void UpdateNode(int cx, int cy, int tx, int ty, int value)
         UpdateNode(cx + 1, cy, tx, ty, value + 1);
         UpdateNode(cx, cy - 1, tx, ty, value + 1);
         UpdateNode(cx, cy + 1, tx, ty, value + 1);
-    }
-}
-
-void PrintSearchMap()
-{
-    for(int x = 0; x < levelSize; ++x)
-    {
-        for(int y = 0; y < levelSize; ++y) printf("%03d ", AISearchMap[x][y]);
-        printf("\n");
     }
 }
 
