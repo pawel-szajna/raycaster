@@ -11,9 +11,14 @@
 
 class Player;
 
-SDL_Surface* InitCaster(int* level, LevelInfo* li);
-void GenerateNoise(SDL_Surface* noise, int amount);
-void GenerateNoiseLinear(SDL_Surface* noise, int amount);
+namespace sdl
+{
+class Surface;
+}
+
+sdl::Surface InitCaster(int* level, LevelInfo* li);
+void generateNoise(sdl::Surface& noise, int amount);
+void generateNoiseLinear(sdl::Surface& noise, int amount);
 void SpriteSort(int* order, double* distance, int count);
 void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashlight);
 void ResetDynamicSprites();

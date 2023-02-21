@@ -4,6 +4,7 @@
 
 #include "player.hpp"
 #include "level.hpp"
+#include "sdl.hpp"
 
 #include <cmath>
 
@@ -104,25 +105,23 @@ void LoadTexture(Uint32* memory, const char* filename)
 	fclose(data);
 }
 
-SDL_Surface* InitCaster(int* level, LevelInfo* li)
+sdl::Surface InitCaster(int* level, LevelInfo* li)
 {
 	int i, x, y, u;
 	char filename[128];
-	SDL_Surface* wv;
 
 	printf("Initializing caster... ");
 	assert(level);
 	assert(li);
 
-	wv = SDL_CreateRGBSurface(SDL_HWSURFACE, wwWidth, wwHeight, 32, 0, 0, 0, 0);
-	assert(wv);
+    auto wv = sdl::make_surface(wwWidth, wwHeight);
 
 	numSprites = 0;
 	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y) if(BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6) ++numSprites;
 
-	if(sprite != NULL) free(sprite);
-	if(spriteOrder != NULL) free(spriteOrder);
-	if(spriteDistance != NULL) free(spriteDistance);
+	if(sprite != nullptr) free(sprite);
+	if(spriteOrder != nullptr) free(spriteOrder);
+	if(spriteDistance != nullptr) free(spriteDistance);
 
 	sprite = new Sprite[numSprites];
 	spriteOrder = new int[numSprites];
@@ -392,13 +391,12 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 	}
 }
 
-void GenerateNoise(SDL_Surface* noise, int amount)
+void generateNoise(sdl::Surface& noise, int amount)
 {
 	int x, y, buf;
 
 	if(amount < 1) amount = 1;
 
-	assert(noise);
 	pixels = (Uint32*)(noise->pixels);
 	for(y = 0; y < 90; ++y)
 	{
@@ -417,13 +415,12 @@ void GenerateNoise(SDL_Surface* noise, int amount)
 	}
 }
 
-void GenerateNoiseLinear(SDL_Surface* noise, int amount)
+void generateNoiseLinear(sdl::Surface& noise, int amount)
 {
 	int x, y, buf;
 
 	if(amount < 1) amount = 1;
 
-	assert(noise);
 	pixels = (Uint32*)(noise->pixels);
 	for(y = 0; y < 90; ++y)
 	{

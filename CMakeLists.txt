@@ -12,6 +12,7 @@ add_library(
     level.cpp
     player.cpp
     ui.cpp
+    sdl.cpp
 )
 
 target_compile_options(libraycaster PRIVATE -Wall -pedantic)

@@ -15,6 +15,7 @@
 #include "ai.hpp"
 #include "ui.hpp"
 #include "generator.hpp"
+#include "sdl.hpp"
 
 #ifndef NDEBUG
 #undef main
@@ -50,10 +51,8 @@ int main(int argc, char** argv)
 	NPCs npcs{};
 
 	SDL_Surface* screen;
-	SDL_Surface* worldview;
 	SDL_Surface* map;
 	SDL_Surface* shade;
-	SDL_Surface* noise;
 	SDL_Surface* noise_big;
 	SDL_Surface* popupWindow;
 	SDL_Surface* gun_hand;
@@ -87,13 +86,12 @@ int main(int argc, char** argv)
 	InitUI();
 	
 	screen = SDL_SetVideoMode(config.sWidth, config.sHeight, 32, SDL_HWSURFACE | (config.fullScreen ? SDL_FULLSCREEN : 0));
-	worldview = SDL_CreateRGBSurface(SDL_HWSURFACE, wwWidth, wwHeight, 32, 0, 0, 0, 0);
-	noise = SDL_CreateRGBSurface(SDL_HWSURFACE, 160, 90, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	auto worldview = sdl::make_surface(wwWidth, wwHeight);
+    auto noise = sdl::make_alpha_surface(160, 90);
+
 	shade = SDL_LoadBMP("gfx/shade.bmp");
 
 	assert(screen);
-	assert(worldview);
-	assert(noise);
 	assert(shade);
 
 	SDL_ShowCursor(SDL_DISABLE);
@@ -114,33 +112,26 @@ int main(int argc, char** argv)
 		SDL_WM_SetCaption(config.title, NULL);
 		for(;;)
 		{
-			SDL_Surface* tmp;
-
 			if(danger_level > 12)
 			{
-				GenerateNoiseLinear(noise, danger_level);
+				generateNoiseLinear(noise, danger_level);
 				danger_level -= 2;
 			}
 			else
 			{
-				GenerateNoise(noise, 12);
+				generateNoise(noise, 12);
 			}
 			
-			noise_big = SPG_Transform(noise, 0, 0, 4, 4, 0);
+			noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
 			assert(noise_big);
 
-			SDL_FreeSurface(worldview);
-			worldview = SDL_CreateRGBSurface(SDL_HWSURFACE, wwWidth, wwHeight, 32, 0, 0, 0, 0);
-			
-			tmp = TTF_RenderUTF8_Shaded(uiFontNotice, "Prece enter key", uiBG, uiFG);
-			SDL_BlitSurface(tmp, 0, worldview, &r2);
+            worldview = sdl::make_surface(wwWidth, wwHeight);
 
-			tmp = TTF_RenderUTF8_Shaded(uiFontTitle, "Techdemo", uiBG, uiFG);
-			SDL_BlitSurface(tmp, 0, worldview, &r1);
+            uiFontNotice.render(worldview, r2, "Prece enter key");
+            uiFontTitle.render(worldview, r1, "Techdemo");
 
-			SDL_FreeSurface(tmp);
-			SDL_BlitSurface(noise_big, 0, worldview, 0);
-			SDL_SoftStretch(worldview, 0, screen, 0);
+			SDL_BlitSurface(noise_big, 0, *worldview, 0);
+			SDL_SoftStretch(*worldview, 0, screen, 0);
 			SDL_UpdateRect(screen, 0, 0, 0, 0);
 			SDL_Delay(40);
 
@@ -182,9 +173,7 @@ int main(int argc, char** argv)
 				InitUI();
 				sprintf(filename, "%s: Level %d", config.title, player.levelId);
 				SDL_WM_SetCaption(filename, NULL);
-				SDL_FreeSurface(worldview);
 				worldview = InitCaster((int*)level, &levelinfo);
-				assert(worldview);
 
                 player.switchLevel();
 				npcs = player.currentLevel().npcs;
@@ -202,14 +191,14 @@ int main(int argc, char** argv)
 			/* render frame */
 			if(!paused)
 			{
-				CastFrame(worldview, (int*)level, &player, flashlight && player.blink());
-				if(player.revolver) SDL_BlitSurface(gun_hand, 0, worldview, &r9);
+				CastFrame(*worldview, (int*)level, &player, flashlight && player.blink());
+				if(player.revolver) SDL_BlitSurface(gun_hand, 0, *worldview, &r9);
 			}
-			GenerateNoise(noise, danger_level);
-			noise_big = SPG_Transform(noise, 0, 0, 4, 4, 0);
+			generateNoise(noise, danger_level);
+			noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
 			assert(noise_big);
-			SDL_BlitSurface(noise_big, 0, worldview, 0);
-			SDL_SoftStretch(worldview, 0, screen, 0);
+			SDL_BlitSurface(noise_big, 0, *worldview, 0);
+			SDL_SoftStretch(*worldview, 0, screen, 0);
 			SPG_Free(noise_big);
 
 			/* draw UI */
@@ -302,11 +291,11 @@ int main(int argc, char** argv)
 		case GameMode::GameOver:
 		for(int a = 0; a < 40; ++a)
 		{
-			GenerateNoise(noise, danger_level);
-			noise_big = SPG_Transform(noise, 0, 0, 4, 4, 0);
+			generateNoise(noise, danger_level);
+			noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
 			assert(noise_big);
-			SDL_BlitSurface(noise_big, 0, worldview, 0);
-			SDL_SoftStretch(worldview, 0, screen, 0);
+			SDL_BlitSurface(noise_big, 0, *worldview, 0);
+			SDL_SoftStretch(*worldview, 0, screen, 0);
 			SPG_Free(noise_big);
 			SDL_PollEvent(&event);
 			SDL_UpdateRect(screen, 0, 0, 0, 0);

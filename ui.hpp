@@ -1,12 +1,12 @@
 #pragma once
 
 #include "data.hpp"
-#include "SDL/SDL_ttf.h"
+#include "sdl.hpp"
 
-extern TTF_Font* uiFont;
-extern TTF_Font* uiFontHeader;
-extern TTF_Font* uiFontNotice;
-extern TTF_Font* uiFontTitle;
+extern sdl::Font uiFont;
+extern sdl::Font uiFontHeader;
+extern sdl::Font uiFontNotice;
+extern sdl::Font uiFontTitle;
 extern SDL_Color uiFG;
 extern SDL_Color uiBG;
 

@@ -1,26 +1,21 @@
 #include "ui.hpp"
+#include "sdl.hpp"
 
-TTF_Font* uiFont;
-TTF_Font* uiFontHeader;
-TTF_Font* uiFontNotice;
-TTF_Font* uiFontTitle;
+sdl::Font uiFont;
+sdl::Font uiFontHeader;
+sdl::Font uiFontNotice;
+sdl::Font uiFontTitle;
+
 SDL_Color uiFG;
 SDL_Color uiBG;
 
 void InitUI()
 {
-	printf("Initializing UI... ");
+    uiFont = sdl::Font("gfx/font.ttf", 12);
+    uiFontHeader = sdl::Font("gfx/fontbold.ttf", 16);
+    uiFontNotice = sdl::Font("gfx/hardman.ttf", 32);
+    uiFontTitle = sdl::Font("gfx/hardman.ttf", 71);
 
-	uiFont = TTF_OpenFont("gfx/font.ttf", 12);
-	uiFontHeader = TTF_OpenFont("gfx/fontbold.ttf", 16);
-	uiFontNotice = TTF_OpenFont("gfx/hardman.ttf", 32);
-	uiFontTitle = TTF_OpenFont("gfx/hardman.ttf", 71);
-
-	assert(uiFont);
-	assert(uiFontHeader);
-	assert(uiFontNotice);
-	assert(uiFontTitle);
-	
 	uiFG.r = 0; uiFG.g = 0; uiFG.b = 0;
 	uiBG.r = 255; uiBG.g = 255; uiBG.b = 255;
 
@@ -29,19 +24,14 @@ void InitUI()
 
 SDL_Surface* MessageWindow(const char* title, const char* msg, SDL_Rect* target, GameConfig* cfg)
 {
-	SDL_Surface* window;
-	SDL_Surface* tmp;
 	SDL_Rect r = { 24, 52, 0, 0 }, p = { 24, 24, 0, 0 };
 
-	if(!uiFont || !uiFontHeader) InitUI();
-	window = MakeWindow(480, 128, NULL, target, cfg); assert(window);
-	tmp = TTF_RenderUTF8_Shaded(uiFont, msg, uiFG, uiBG);
-	SDL_BlitSurface(tmp, NULL, window, &r);
-	tmp = TTF_RenderUTF8_Shaded(uiFontHeader, title, uiFG, uiBG);
-	SDL_BlitSurface(tmp, NULL, window, &p);
-	SDL_FreeSurface(tmp);
+	auto window = sdl::Surface(MakeWindow(480, 128, NULL, target, cfg));
 
-	return window;
+    uiFont.render(window, r, msg);
+    uiFontHeader.render(window, p, title);
+
+	return *window;
 }
 
 SDL_Surface* MakeWindow(int w, int h, const char* title, SDL_Rect* target, GameConfig* cfg)
@@ -97,10 +87,7 @@ SDL_Surface* MakeWindow(int w, int h, const char* title, SDL_Rect* target, GameC
 
 	if(title != NULL)
 	{
-		if(!uiFontHeader) InitUI();
-		tmp = TTF_RenderUTF8_Shaded(uiFontHeader, title, uiFG, uiBG);
-		r1.x = 10; r1.y = 10; SDL_BlitSurface(tmp, NULL, window, &r1);
-		SDL_FreeSurface(tmp);
+        uiFontHeader.render(window, r1, title);
 	}
 
 	return window;
