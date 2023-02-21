@@ -5,13 +5,13 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_library(
     libraycaster
-    ai.c
-    caster.c
-    data.c
-    generator.c
-    level.c
-    player.c
-    ui.c
+    ai.cpp
+    caster.cpp
+    data.cpp
+    generator.cpp
+    level.cpp
+    player.cpp
+    ui.cpp
 )
 
 add_subdirectory(sprig)
@@ -23,7 +23,7 @@ include_directories(
 
 add_executable(
     raycaster
-    main.c
+    main.cpp
 )
 
 target_link_libraries(

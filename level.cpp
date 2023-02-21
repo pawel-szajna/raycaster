@@ -1,9 +1,9 @@
-#include "level.h"
+#include "level.hpp"
 
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
-#include "ai.h"
+#include "ai.hpp"
 
 int BlockType(int* level, int x, int y)
 {

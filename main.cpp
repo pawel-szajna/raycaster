@@ -2,19 +2,19 @@
 #include "SDL/SDL_ttf.h"
 #include "sprig.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+#include <ctime>
 
-#include "data.h"
-#include "level.h"
-#include "caster.h"
-#include "player.h"
-#include "ai.h"
-#include "ui.h"
-#include "generator.h"
+#include "data.hpp"
+#include "level.hpp"
+#include "caster.hpp"
+#include "player.hpp"
+#include "ai.hpp"
+#include "ui.hpp"
+#include "generator.hpp"
 
 #ifndef NDEBUG
 #undef main
@@ -192,12 +192,12 @@ int main(int argc, char** argv)
 
 				if(!found) /* this level hasn't been visited yet, prepare its entry */
 				{
-					player.data.current = malloc(sizeof(PlayerLevel));
+					player.data.current = new PlayerLevel;
 					assert(player.data.current);
 
 					player.data.current->levelID = player.level;
 					player.data.current->next = player.data.levels;
-					player.data.current->npcs = malloc(sizeof(NPCList));
+					player.data.current->npcs = new NPCList;
 					assert(player.data.current->npcs);
 
 					memcpy(player.data.current->npcs, npcs, sizeof(NPCList));

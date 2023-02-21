@@ -1,4 +1,4 @@
-#include "generator.h"
+#include "generator.hpp"
 
 void clear_level(int* level)
 {

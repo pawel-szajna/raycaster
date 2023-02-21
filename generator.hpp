@@ -3,8 +3,8 @@
 
 #include <math.h>
 
-#include "level.h"
-#include "ai.h"
+#include "level.hpp"
+#include "ai.hpp"
 
 void clear_level(int* level);
 void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g);

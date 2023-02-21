@@ -1,7 +1,6 @@
-#ifndef _PLAYER_H_
-#define _PLAYER_H_
+#pragma once
 
-#include "data.h"
+#include "data.hpp"
 
 void NewGame(Player* player, GameConfig* config);
 void LoadConfig(GameConfig* config);
@@ -16,5 +15,3 @@ void SaveGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited);
 int OnKeyPress(SDL_Event* event, int key);
 
 int Blink(int battery);
-
-#endif

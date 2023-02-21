@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include "data.h"
+#include <cstdio>
+#include "data.hpp"
 #undef main
 
 int main()

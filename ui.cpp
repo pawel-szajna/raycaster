@@ -1,4 +1,4 @@
-#include "ui.h"
+#include "ui.hpp"
 
 TTF_Font* uiFont;
 TTF_Font* uiFontHeader;

@@ -1,8 +1,8 @@
-#include "ai.h"
-#include "caster.h"
+#include "ai.hpp"
+#include "caster.hpp"
 
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #define CANENTER(x) 	(!((x)==1 || (x)==2))
 #define SQR(x) 			((x)*(x))
@@ -72,7 +72,7 @@ void ResetAI(NPCList** npcs)
 
 NPCList* AddNPC(NPCList* npcs, double x, double y, int firstTexture)
 {
-	NPCList* newnpc = malloc(sizeof(NPCList));
+	auto newnpc = new NPCList;
 
 	assert(newnpc);
 	printf("Adding new NPC... ");
@@ -89,7 +89,7 @@ NPCList* AddNPC(NPCList* npcs, double x, double y, int firstTexture)
 
 ItemList* AddItem(ItemList* item, double x, double y, int num)
 {
-	ItemList* newitems = malloc(sizeof(ItemList));
+	auto newitems = new ItemList;
 
 	assert(newitems);
 	printf("Adding new item... ");

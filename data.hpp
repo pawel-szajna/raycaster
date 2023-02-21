@@ -1,11 +1,10 @@
-#ifndef _DATA_H_
-#define _DATA_H_
+#pragma once
 
 /* uncomment for release */
 /*#define NDEBUG*/
 
 #include "SDL/SDL.h"
-#include <assert.h>
+#include <cassert>
 
 #define SFACTOR 1.1
 #define LEVEL_SIZE 64
@@ -132,5 +131,3 @@ enum GameModes
 	MODE_GAMEOVER,
 	MODE_QUIT
 };
-
-#endif

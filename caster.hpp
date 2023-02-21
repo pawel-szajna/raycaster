@@ -1,7 +1,6 @@
-#ifndef _CASTER_H_
-#define _CASTER_H_
+#pragma once
 
-#include "data.h"
+#include "data.hpp"
 
 #define wwWidth 540
 #define wwHeight 300
@@ -19,5 +18,3 @@ void ResetDynamicSprites();
 void AddDynamicSprite(double x, double y, int texture);
 int GetCasterWidth();
 int GetCasterHeight();
-
-#endif

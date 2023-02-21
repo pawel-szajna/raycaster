@@ -1,10 +1,10 @@
-#include "player.h"
-#include "level.h"
-#include "ai.h"
+#include "player.hpp"
+#include "level.hpp"
+#include "ai.hpp"
 
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
 
 #define CANENTER(x) (!((x)==1 || (x)==2))
 
@@ -253,23 +253,23 @@ void LoadGame(Player* player, NPCList* npcs, LevelInfo* li, char* visited)
 
 	/* load player state */
 	fread((char*)player, sizeof(char), sizeof(Player) / sizeof(char), state);
-	player->data.levels = NULL; /* TODO: leak fix */
-	player->data.current = NULL;
+	player->data.levels = nullptr; /* TODO: leak fix */
+	player->data.current = nullptr;
 
 	/* load level states */
 	while(!feof(state))
 	{
-		it = malloc(sizeof(PlayerLevel));
+		it = new PlayerLevel;
 		assert(it);
 		fread((char*)it, sizeof(char), sizeof(PlayerLevel) / sizeof(char), state);
 		it->next = player->data.levels;
-		it->npcs = NULL;
+		it->npcs = nullptr;
 
 		/* load npc states */
 		fread(&i, sizeof(int), 1, state);
 		while(i)
 		{
-			npc = malloc(sizeof(NPCList));
+			npc = new NPCList;
 			assert(npc);
 			fread((char*)npc, sizeof(char), sizeof(NPCList) / sizeof(char), state);
 			npc->next = it->npcs;

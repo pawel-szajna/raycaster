@@ -1,11 +1,12 @@
-#include "caster.h"
+#include "caster.hpp"
 
 #include "SDL/SDL.h"
 
-#include "player.h"
-#include "level.h"
+#include "player.hpp"
+#include "level.hpp"
 
-#include <math.h>
+#include <cmath>
+
 #define SQR(x) ((x)*(x))
 
 int mapX, mapY;
@@ -123,9 +124,9 @@ SDL_Surface* InitCaster(int* level, LevelInfo* li)
 	if(spriteOrder != NULL) free(spriteOrder);
 	if(spriteDistance != NULL) free(spriteDistance);
 
-	sprite = malloc(numSprites * sizeof(Sprite)); assert(sprite);
-	spriteOrder = malloc(numSprites * sizeof(int)); assert(spriteOrder);
-	spriteDistance = malloc(numSprites * sizeof(double)); assert(spriteDistance);
+	sprite = new Sprite[numSprites];
+	spriteOrder = new int[numSprites];
+	spriteDistance = new double[numSprites];
 
 	staticSprites = numSprites;
 	
@@ -190,18 +191,18 @@ void ResetDynamicSprites()
 {
 	numSprites = staticSprites;
 	
-	sprite = realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
-	spriteOrder = realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
-	spriteDistance = realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
+	sprite = (Sprite*)realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
+	spriteOrder = (int*)realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
+	spriteDistance = (double*)realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
 }
 
 void AddDynamicSprite(double x, double y, int texture)
 {
 	++numSprites;
 	
-	sprite = realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
-	spriteOrder = realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
-	spriteDistance = realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
+	sprite = (Sprite*)realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
+	spriteOrder = (int*)realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
+	spriteDistance = (double*)realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
 
 	sprite[numSprites - 1].x = x;
 	sprite[numSprites - 1].y = y;
