@@ -1,5 +1,12 @@
 #include "ui.h"
 
+TTF_Font* uiFont;
+TTF_Font* uiFontHeader;
+TTF_Font* uiFontNotice;
+TTF_Font* uiFontTitle;
+SDL_Color uiFG;
+SDL_Color uiBG;
+
 void InitUI()
 {
 	printf("Initializing UI... ");

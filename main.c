@@ -1,6 +1,6 @@
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
-#include "SDL/sprig.h"
+#include "sprig.h"
 
 #include <stdio.h>
 #include <stdlib.h>

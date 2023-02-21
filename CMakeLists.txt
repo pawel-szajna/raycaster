@@ -1,30 +1,36 @@
 cmake_minimum_required(VERSION 3.10)
-project(raycaster C)
+project(raycaster)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 23)
 
-link_libraries(
-        SDL
-        SDL_ttf
-        m
-        sprig
+add_library(
+    libraycaster
+    ai.c
+    caster.c
+    data.c
+    generator.c
+    level.c
+    player.c
+    ui.c
 )
 
-include_directories(.)
+add_subdirectory(sprig)
 
-add_executable(raycaster
-        ai.c
-        ai.h
-        caster.c
-        caster.h
-        data.c
-        data.h
-        generator.c
-        generator.h
-        level.c
-        level.h
-        main.c
-        player.c
-        player.h
-        ui.c
-        ui.h)
+include_directories(
+    .
+    sprig/source
+)
+
+add_executable(
+    raycaster
+    main.c
+)
+
+target_link_libraries(
+    raycaster
+    libraycaster
+    SDL
+    SDL_ttf
+    m
+    sprig
+)
