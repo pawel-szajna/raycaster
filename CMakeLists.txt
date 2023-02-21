@@ -14,7 +14,11 @@ add_library(
     ui.cpp
 )
 
+target_compile_options(libraycaster PUBLIC -Wall -pedantic)
+
 add_subdirectory(sprig)
+
+target_compile_options(sprig PUBLIC -Wno-narrowing -Wno-misleading-indentation)
 
 include_directories(
     .
@@ -25,6 +29,8 @@ add_executable(
     raycaster
     main.cpp
 )
+
+target_compile_options(raycaster PUBLIC -Wall -pedantic)
 
 target_link_libraries(
     raycaster
