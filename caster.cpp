@@ -216,14 +216,16 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 	fStart = flashlight ? 2.5 : 0.5;
 	fEnd = flashlight ? 5.5 : 3.1;
 	fLength = fEnd - fStart;
+    
+    const auto& position = player->getPosition() ;
 
 	for(x = 0; x < wwWidth; ++x)
 	{
 		camX = 2 * x / (double)wwWidth - 1; /* wspolrzedna x na plaszczyznie na ktorej rzutowany jest obraz */
-		rayPX = player->posX;
-		rayPY = player->posY;
-		rayDX = player->dirX + player->planeX * camX;
-		rayDY = player->dirY + player->planeY * camX;
+		rayPX = position.x;
+		rayPY = position.y;
+		rayDX = position.dirX + position.planeX * camX;
+		rayDY = position.dirY + position.planeY * camX;
 		mapX = (int)rayPX;
 		mapY = (int)rayPY;
 		deltadX = sqrt(1 + SQR(rayDY) / SQR(rayDX));
@@ -263,10 +265,10 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 		if(dEnd >= wwHeight) dEnd = wwHeight - 1;
 
 		tex = (worldMap[mapX * levelSize + mapY] >> 4);
-		if(!side && player->posX < mapX) tex >>= 8;
+		if(!side && position.x < mapX) tex >>= 8;
 		if(side)
 		{
-			if(player->posY < mapY) tex >>= 12;
+			if(position.y < mapY) tex >>= 12;
 			else tex >>= 4;
 		}
 		tex %= 16;
@@ -302,7 +304,7 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 	for(i = 0; i < numSprites; ++i)
 	{
 		spriteOrder[i] = i;
-		spriteDistance[i] = (SQR(player->posX - sprite[i].x) + SQR(player->posY - sprite[i].y));
+		spriteDistance[i] = (SQR(position.x - sprite[i].x) + SQR(position.y - sprite[i].y));
 	}
 	
 	SpriteSort(spriteOrder, spriteDistance, numSprites);
@@ -314,12 +316,12 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 			continue;
 		}
 
-		spriteX = sprite[spriteOrder[i]].x - player->posX;
-		spriteY = sprite[spriteOrder[i]].y - player->posY;
-		invDet = 1.0 / (player->planeX * player->dirY - player->dirX * player->planeY);
+		spriteX = sprite[spriteOrder[i]].x - position.x;
+		spriteY = sprite[spriteOrder[i]].y - position.y;
+		invDet = 1.0 / (position.planeX * position.dirY - position.dirX * position.planeY);
 
-		transX = invDet * (player->dirY * spriteX - player->dirX * spriteY);
-		transY = invDet * (-player->planeY * spriteX + player->planeX * spriteY);
+		transX = invDet * (position.dirY * spriteX - position.dirX * spriteY);
+		transY = invDet * (-position.planeY * spriteX + position.planeX * spriteY);
 
 		spriteScreenX = (int)((wwWidth / 2) * (1 + transX / transY));
 

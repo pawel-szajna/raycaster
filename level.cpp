@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "ai.hpp"
+#include "player.hpp"
 
 int BlockType(int* level, int x, int y)
 {
@@ -70,28 +71,19 @@ SDL_Surface* DrawMap(int* level, Player* player)
 	SDL_Surface* map;
 	SDL_Surface* tmp;
 	SDL_Rect b1 = { 0, 0, 8, 8 }, b2 = { 0, 0, 8, 8 };
-	int x, y;
+
 	char filename[64];
 	char* visited = player->currentLevel().visited;
-	int posX = (int)player->posX;
-	int posY = (int)player->posY;
-	double dirX = player->dirX;
-	double dirY = player->dirY;
+    const auto& position = player->getPosition();
 
 	map = SDL_CreateRGBSurface(SDL_HWSURFACE, levelSize * 8, levelSize * 8, 32, 0, 0, 0, 0);
 	assert(map);
 
-/*	for(int i = 0; i < 15; ++i)
+	for(int x = 0; x < levelSize; ++x) for(int y = 0; y < levelSize; ++y)
 	{
-		sprintf(filename, "gfx/map%02d.bmp", i);
-		b[i] = SDL_LoadBMP(filename);
-	}
-*/
-	for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
-	{
-		if(posX == x && posY == y)
+		if((int)position.x == x && (int)position.y == y)
 		{
-			tmp = SDL_LoadBMP(PlayerArrow(atan2(dirY, dirX) + 3.1415));
+			tmp = SDL_LoadBMP(PlayerArrow(atan2(position.dirY, position.dirX) + 3.1415));
 			assert(tmp);
 		}
 		else if(visited[levelSize * x + y])
@@ -118,8 +110,6 @@ SDL_Surface* DrawMap(int* level, Player* player)
 		SDL_BlitSurface(tmp, &b1, map, &b2);
 		SDL_FreeSurface(tmp);
 	}
-
-	/*for(int i = 0; i < 15; ++i) SDL_FreeSurface(b[i]);*/
 
 	return map;
 }

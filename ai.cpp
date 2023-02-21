@@ -1,5 +1,7 @@
 #include "ai.hpp"
+
 #include "caster.hpp"
+#include "player.hpp"
 
 #include <cstdio>
 #include <cmath>
@@ -127,7 +129,7 @@ double AI_DistanceToNearestNPC(Player* player)
     {
         if (npc.alive)
         {
-            auto distance = DIST(npc.x, npc.y, player->posX, player->posY);
+            auto distance = DIST(npc.x, npc.y, player->getPosition().x, player->getPosition().y);
             nearest = std::min(distance, nearest);
             npc.distance = distance;
         }
@@ -169,7 +171,10 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
 
 	ResetDynamicSprites();
 
-    for (auto& npc : player->currentLevel().npcs)
+    auto& currentLevel = player->currentLevel();
+    const auto& position = player->getPosition();
+
+    for (auto& npc : currentLevel.npcs)
     {
         if (npc.alive && npc.distance < SQR(8))
         {
@@ -177,10 +182,9 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
 
             if (distance < 0.12 or distance > 1)
             {
-                npc.targetX = (int)player->posX;
-                npc.targetY = (int)player->posY;
+                npc.targetX = (int)position.x;
+                npc.targetY = (int)position.y;
                 distance = sqrt(DIST(npc.x, npc.y, (double)npc.targetX + 0.5, (double)npc.targetY + 0.5));
-                // UpdateSearchMap((int)current->npc.x, (int)current->npc.y, (int)player->posX, (int)player->posY);
             }
 
             target = (((double)npc.targetX - npc.x + 0.5) / distance) * 0.15;
@@ -200,10 +204,10 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         AddDynamicSprite(npc.x, npc.y, npcTexture);
     }
 
-    for (auto& item : player->currentLevel().items)
+    for (auto& item : currentLevel.items)
     {
-        if ((int)player->posX == (int)item.x and
-            (int)player->posY == (int)item.y and
+        if ((int)position.x == (int)item.x and
+            (int)position.y == (int)item.y and
             item.nottaken)
         {
             switch (item.number)

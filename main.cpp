@@ -37,9 +37,6 @@ int main(int argc, char** argv)
 	double nearest = 20;
 
 	LevelInfo levelinfo;
-	GameConfig config;
-
-	Player player;
 	NPCs npcs{};
 
 	SDL_Surface* screen;
@@ -74,7 +71,8 @@ int main(int argc, char** argv)
 	SDL_Init(SDL_INIT_EVERYTHING);
 	TTF_Init();
 
-	LoadConfig(&config);
+    GameConfig config{};
+    Player player(config);
 	LoadText((char*)texts);
 	InitUI();
 	
@@ -150,9 +148,9 @@ int main(int argc, char** argv)
 		break;
 
 		case GameMode::MainMenu:
-		NewGame(&player, &config);
-		mode = GameMode::Game;
-		break;
+        player = Player(config);
+        mode = GameMode::Game;
+        break;
 
 		case GameMode::Game:
 		gun_hand = SDL_LoadBMP("gfx/gun/gun1.bmp");
@@ -168,7 +166,7 @@ int main(int argc, char** argv)
 			{
 				sprintf(filename, "map/level%d.dat", player.levelId);
 				LoadLevel((int*)level, &levelinfo, npcs, filename);
-				generate_map((int*)level, (int)player.posX, (int)player.posY, 1);
+				generate_map((int*)level, (int)player.getPosition().x, (int)player.getPosition().y, 1);
 				npcs = generate_npcs((int*)level);
 				InitAI((int*)level);
 				InitUI();
@@ -186,7 +184,7 @@ int main(int argc, char** argv)
 				AddItem(player.currentLevel().items, 27, 47, 1);
 				AddItem(player.currentLevel().items, 27, 48, 3);
 
-				player.reloadLevel = 0;
+				player.reloadLevel = false;
 			}
 
 			keys = SDL_GetKeyState(NULL);
@@ -251,7 +249,7 @@ int main(int argc, char** argv)
 			{
 				nearest = AI_DistanceToNearestNPC(&player);
 				popup = AI_Tick(&player, frameTime, flashlight);
-				HandleMovement(&player, keys, (int*)level, (char*)visited, frameTime);
+				player.handleMovement(keys, (int*)level, (char*)visited, frameTime);
 
 				if(popup)
 				{

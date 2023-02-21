@@ -9,6 +9,8 @@
 #define texHeight 120
 #define texCount 106
 
+class Player;
+
 SDL_Surface* InitCaster(int* level, LevelInfo* li);
 void GenerateNoise(SDL_Surface* noise, int amount);
 void GenerateNoiseLinear(SDL_Surface* noise, int amount);

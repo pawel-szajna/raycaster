@@ -55,56 +55,6 @@ struct Item
 
 using Items = std::vector<Item>;
 
-struct PlayerLevel
-{
-	int id;
-	char visited[levelSize * levelSize]{};
-	Items items{};
-	NPCs npcs{};
-
-    explicit PlayerLevel(int id) : id(id) {}
-};
-
-using PlayerLevels = std::unordered_map<int, PlayerLevel>;
-
-struct PlayerData
-{
-    PlayerLevels levels{};
-};
-
-struct Player
-{
-	double posX, posY;
-	double dirX, dirY;
-	double planeX, planeY;
-
-	double hpNow, hpMax; /* unused in techdemo */
-
-	int revolver;
-	int flashlight;
-	int bullets;
-	int battery;
-
-	int levelId;
-	int reloadLevel;
-
-    PlayerLevel& currentLevel() { return current->second; }
-
-    void switchLevel()
-    {
-        if (not levels.contains(levelId))
-        {
-            levels.emplace(levelId, PlayerLevel(levelId));
-        }
-
-        current = levels.find(levelId);
-    }
-
-private:
-	PlayerLevels levels{};
-    PlayerLevels::iterator current;
-};
-
 struct GameConfig
 {
 	int sWidth;
@@ -115,6 +65,18 @@ struct GameConfig
 	int pY;
 	int dir;
 	char title[64];
+
+    GameConfig()
+    {
+        FILE* cfile;
+
+        printf("Loading configuration file... ");
+        cfile = fopen("ray.cfg", "r");
+        assert(cfile);
+        fscanf(cfile, "%d %d %d %d %d %d %d %[^\n]", &sWidth, &sHeight, &fullScreen, &level, &pX, &pY, &dir, title);
+        fclose(cfile);
+        printf("OK\n");
+    }
 };
 
 struct Sprite

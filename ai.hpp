@@ -4,6 +4,8 @@
 
 #include "data.hpp"
 
+class Player;
+
 void ResetAI(NPCs& npcs);
 void InitAI(int* level);
 bool KillNPC(double x, double y, NPCs& npcs);
