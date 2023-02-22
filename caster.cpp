@@ -10,44 +10,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
-#define SQR(x) ((x)*(x))
-
-int mapX, mapY;
-int stepX, stepY;
-int hit, side;
-
-int lineHeight;
-int dStart, dEnd;
-
-int numSprites;
-int spriteScreenX;
-int spriteHeight, spriteWidth;
-int dStartX, dEndX;
-int staticSprites;
-int* spriteOrder;
-
-int tex, texX, texY;
-unsigned int r, g, b, d;
-
-double camX, oldDir;
-double rayPX, rayPY;
-double rayDX, rayDY;
-double sidedX, sidedY;
-double deltadX, deltadY;
-double wallDist, wallX;
-
-double transX, transY;
-double invDet;
 double ZBuffer[wwWidth];
-double* spriteDistance;
 
-double fStart = 1.5, fEnd = 5.5;
-double fLength = 4.0;
-
-unsigned char datar, datag, datab;
-
-Uint8* keys;
-Uint32* pixels;
 Uint32 buffer[wwWidth][wwHeight];
 Uint32 textures[texCount][texWidth * texHeight];
 Uint32 color;
@@ -66,18 +30,35 @@ std::vector<Sprite> sprites;
 namespace
 {
 constexpr auto DYNAMIC{true};
+
+enum class Hit : bool
+{
+    Horizontal,
+    Vertical
+};
+
+constexpr auto sqr(auto x)
+{
+    return x * x;
+}
+
+constexpr auto outOfBounds(int x, int y, int size)
+{
+    return x < 0 or y < 0 or x >= size or y >= size;
+}
 }
 
 void LoadTexture(Uint32* memory, const char* filename)
 {
-    FILE* data;
-    int y;
+    FILE* data = fopen(filename, "rb");
+    if (not data)
+    {
+        spdlog::warn("File not found: {}!", filename);
+    }
 
-    assert(memory);
-    data = fopen(filename, "rb");
-    if(!data) spdlog::warn("File not found: {}!", filename);
-    assert(data);
-    for(y = 0; y < (texWidth * texHeight); ++y)
+    unsigned char datar, datag, datab;
+
+    for (int y = 0; y < (texWidth * texHeight); ++y)
     {
         fread(&datar, sizeof(char), 1, data);
         fread(&datag, sizeof(char), 1, data);
@@ -98,14 +79,16 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
 
     auto wv = sdl::make_surface(wwWidth, wwHeight);
 
-    numSprites = 0;
-    for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y) if(BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6) ++numSprites;
+    auto numSprites = 0;
+    for (x = 0; x < levelSize; ++x)
+        for (y = 0; y < levelSize; ++y)
+            if (BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6)
+                ++numSprites;
 
     sprites.clear();
     sprites.reserve(numSprites);
-    staticSprites = numSprites;
 
-    for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
+    for (x = 0; x < levelSize; ++x) for (y = 0; y < levelSize; ++y)
     {
         spdlog::info("Adding sprite");
         u = BlockType(level, x, y);
@@ -160,7 +143,6 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
 void ResetDynamicSprites()
 {
     spdlog::debug("Reset dynamic sprites");
-    numSprites = staticSprites;
     sprites.erase(std::remove_if(sprites.begin(), sprites.end(), [](const auto& sprite) { return sprite.dynamic; }),
                   sprites.end());
 }
@@ -168,7 +150,6 @@ void ResetDynamicSprites()
 void AddDynamicSprite(double x, double y, int texture)
 {
     spdlog::debug("Add dynamic sprite @ {};{}", x, y);
-    ++numSprites;
     sprites.push_back(Sprite{x, y, texture, 0, DYNAMIC});
 }
 
@@ -176,86 +157,99 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 {
     int x, y;
 
-    fStart = flashlight ? 2.5 : 0.5;
-    fEnd = flashlight ? 5.5 : 3.1;
-    fLength = fEnd - fStart;
+    auto fStart = flashlight ? 2.5 : 0.5;
+    auto fEnd = flashlight ? 5.5 : 3.1;
+    auto fLength = fEnd - fStart;
     
     const auto& position = player->getPosition() ;
 
     for(x = 0; x < wwWidth; ++x)
     {
-        camX = 2 * x / (double)wwWidth - 1; /* wspolrzedna x na plaszczyznie na ktorej rzutowany jest obraz */
-        rayPX = position.x;
-        rayPY = position.y;
-        rayDX = position.dirX + position.planeX * camX;
-        rayDY = position.dirY + position.planeY * camX;
-        mapX = (int)rayPX;
-        mapY = (int)rayPY;
-        deltadX = sqrt(1 + SQR(rayDY) / SQR(rayDX));
-        deltadY = sqrt(1 + SQR(rayDX) / SQR(rayDY));
-        hit = 0;
-        stepX = (rayDX < 0) ? -1 : 1;
-        stepY = (rayDY < 0) ? -1 : 1;
-        sidedX = (stepX < 0) ? (rayPX - mapX) * deltadX : (mapX + 1.0 - rayPX) * deltadX;
-        sidedY = (stepY < 0) ? (rayPY - mapY) * deltadY : (mapY + 1.0 - rayPY) * deltadY;
+        auto camX = 2 * x / (double)wwWidth - 1; /* wspolrzedna x na plaszczyznie na ktorej rzutowany jest obraz */
+        auto rayPX = position.x;
+        auto rayPY = position.y;
+        auto rayDX = position.dirX + position.planeX * camX;
+        auto rayDY = position.dirY + position.planeY * camX;
+        auto mapX = (int)rayPX;
+        auto mapY = (int)rayPY;
+        auto deltadX = sqrt(1 + sqr(rayDY) / sqr(rayDX));
+        auto deltadY = sqrt(1 + sqr(rayDX) / sqr(rayDY));
+        auto stepX = (rayDX < 0) ? -1 : 1;
+        auto stepY = (rayDY < 0) ? -1 : 1;
+        auto sidedX = (stepX < 0) ? (rayPX - mapX) * deltadX : (mapX + 1.0 - rayPX) * deltadX;
+        auto sidedY = (stepY < 0) ? (rayPY - mapY) * deltadY : (mapY + 1.0 - rayPY) * deltadY;
+        Hit side{};
 
-        /* lecimy promyczkiem swiatla dopoki nie trafimy na sciane albo nie wylecimy z planszy */
-        while(!hit || mapX < 0 || mapY < 0 || mapX >= levelSize || mapY >= levelSize)
+        while (not outOfBounds(mapX, mapY, levelSize))
         {
-            if(sidedX < sidedY)
+            if (sidedX < sidedY)
             {
                 sidedX += deltadX;
                 mapX += stepX;
-                side = 0;
+                side = Hit::Horizontal;
             }
             else
             {
                 sidedY += deltadY;
                 mapY += stepY;
-                side = 1;
+                side = Hit::Vertical;
             }
 
-            if((worldMap[mapX * levelSize + mapY] % 16) == 1) hit = 1;
+            if ((worldMap[mapX * levelSize + mapY] % 16) == 1)
+            {
+                break;
+            }
         }
 
-        if(!hit) continue;
+        if (outOfBounds(mapX, mapY, levelSize))
+        {
+            continue;
+        }
 
-        wallDist = side ? fabs((mapY - rayPY + (1 - stepY) / 2) / rayDY) : fabs((mapX - rayPX + (1 - stepX) / 2) / rayDX);
-        lineHeight = abs((int)(wwHeight / wallDist));
-        dStart = -lineHeight / 2 + wwHeight / 2;
-        dEnd = lineHeight / 2 + wwHeight / 2;
-        if(dStart < 0) dStart = 0;
-        if(dEnd >= wwHeight) dEnd = wwHeight - 1;
+        auto wallDist = side == Hit::Vertical
+                      ? fabs((mapY - rayPY + (1 - stepY) / 2) / rayDY)
+                      : fabs((mapX - rayPX + (1 - stepX) / 2) / rayDX);
+        auto lineHeight = abs((int)(wwHeight / wallDist));
+        auto dStart = std::max(-lineHeight / 2 + wwHeight / 2, 0);
+        auto dEnd = std::min(lineHeight / 2 + wwHeight / 2, wwHeight - 1);
 
-        tex = (worldMap[mapX * levelSize + mapY] >> 4);
-        if(!side && position.x < mapX) tex >>= 8;
-        if(side)
+        auto tex = (worldMap[mapX * levelSize + mapY] >> 4);
+        if (side == Hit::Horizontal and position.x < mapX)
+        {
+            tex >>= 8;
+        }
+        if (side == Hit::Vertical)
         {
             if(position.y < mapY) tex >>= 12;
             else tex >>= 4;
         }
         tex %= 16;
 
-        wallX = side ? rayPX + ((mapY - rayPY + (1 - stepY) / 2) / rayDY) * rayDX : rayPY + ((mapX - rayPX + (1 - stepX) / 2) / rayDX) * rayDY;
+        auto wallX = side == Hit::Vertical
+                   ? rayPX + ((mapY - rayPY + (1 - stepY) / 2) / rayDY) * rayDX
+                   : rayPY + ((mapX - rayPX + (1 - stepX) / 2) / rayDX) * rayDY;
         wallX -= floor(wallX);
-        texX = (int)(wallX * (double)texWidth);
-        if((!side && rayDX > 0) || (side && rayDY < 0)) texX = texWidth - texX - 1;
-
-        for(y = dStart; y < dEnd; ++y)
+        auto texX = (int)(wallX * (double)texWidth);
+        if ((side == Hit::Horizontal and rayDX > 0) or (side == Hit::Vertical && rayDY < 0))
         {
-            d = y * 256 - wwHeight * 128 + lineHeight * 128;
-            texY = ((d * texHeight) / lineHeight) / 256;
+            texX = texWidth - texX - 1;
+        }
+
+        for (y = dStart; y < dEnd; ++y)
+        {
+            auto d = y * 256 - wwHeight * 128 + lineHeight * 128;
+            auto texY = ((d * texHeight) / lineHeight) / 256;
             color = textures[tex][texHeight * texY + texX];
             if(wallDist > fStart && wallDist < fEnd)
             {
-                r = (color >> 16) % 256;
-                g = (color >> 8) % 256;
-                b = color % 256;
+                auto r = (color >> 16) % 256;
+                auto g = (color >> 8) % 256;
+                auto b = color % 256;
                 r *= (1 - ((wallDist - fStart) / (fLength - 0.1)));
                 g *= (1 - ((wallDist - fStart) / (fLength)));
                 b *= (1 - ((wallDist - fStart) / (fLength - 0.05)));
-                if(r > 255) r = 0;
-                if(b > 255) b = 0;
+                if (r > 255) r = 0;
+                if (b > 255) b = 0;
                 color = 65536 * r + 256 * g + b;
             }
             if(wallDist < fEnd) buffer[x][y] = color;
@@ -267,7 +261,7 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
     std::transform(sprites.begin(), sprites.end(), sprites.begin(),
                    [&position](auto sprite)
                    {
-                       sprite.distance = SQR(position.x - sprite.x) + SQR(position.y - sprite.y);
+                       sprite.distance = sqr(position.x - sprite.x) + sqr(position.y - sprite.y);
                        return sprite;
                    });
 
@@ -276,44 +270,41 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 
     for (const auto& sprite : sprites)
     {
-        invDet = 1.0 / (position.planeX * position.dirY - position.dirX * position.planeY);
+        auto invDet = 1.0 / (position.planeX * position.dirY - position.dirX * position.planeY);
 
-        transX = invDet * (position.dirY * (sprite.x - position.x) - position.dirX * (sprite.y - position.y));
-        transY = invDet * (-position.planeY * (sprite.x - position.x) + position.planeX * (sprite.y - position.y));
+        auto transX = invDet * (position.dirY * (sprite.x - position.x) - position.dirX * (sprite.y - position.y));
+        auto transY = invDet * (-position.planeY * (sprite.x - position.x) + position.planeX * (sprite.y - position.y));
 
-        spriteScreenX = (int)((wwWidth / 2) * (1 + transX / transY));
+        auto spriteScreenX = (int)((wwWidth / 2) * (1 + transX / transY));
 
-        spriteHeight = abs((int)(wwHeight / transY));
-        dStart = -spriteHeight / 2 + wwHeight / 2;
-        dEnd = spriteHeight / 2 + wwHeight / 2;
-        if(dStart < 0) dStart = 0;
-        if(dEnd >= wwHeight) dEnd = wwHeight - 1;
-        spriteWidth = abs((int)(wwHeight / transY));
-        dStartX = -spriteWidth / 2 + spriteScreenX;
-        dEndX = spriteWidth / 2 + spriteScreenX;
-        if(dStartX < 0) dStartX = 0;
-        if(dEndX >= wwWidth) dEndX = wwWidth - 1;
+        auto spriteHeight = abs((int)(wwHeight / transY));
+        auto dStart = std::max(-spriteHeight / 2 + wwHeight / 2, 0);
+        auto dEnd = std::min(spriteHeight / 2 + wwHeight / 2, wwHeight - 1);
 
-        for(x = dStartX; x < dEndX; ++x)
+        auto spriteWidth = abs((int)(wwHeight / transY));
+        auto dStartX = std::max(-spriteWidth / 2 + spriteScreenX, 0);
+        auto dEndX = std::min(spriteWidth / 2 + spriteScreenX, wwWidth - 1);
+
+        for (x = dStartX; x < dEndX; ++x)
         {
-            if(transY > 0 && x > 0 && x < wwWidth && transY < ZBuffer[x]) for(y = dStart; y < dEnd; ++y)
+            if (transY > 0 && x > 0 && x < wwWidth && transY < ZBuffer[x]) for(y = dStart; y < dEnd; ++y)
             {
-                texX = (int)(256 * (x - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
-                d = y * 256 - wwHeight * 128 + spriteHeight * 128;
-                texY = ((d * texHeight) / spriteHeight) / 256;
+                auto texX = (int)(256 * (x - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
+                auto d = y * 256 - wwHeight * 128 + spriteHeight * 128;
+                auto texY = ((d * texHeight) / spriteHeight) / 256;
                 color = textures[sprite.texture][texWidth * texY + texX];
                 if(color != 0x00FFFFFF)
                 {
                     if(transY > fStart && transY < fEnd)
                     {
-                        r = (color >> 16);
-                        g = (color >> 8) % 256;
-                        b = color % 256;
+                        auto r = (color >> 16);
+                        auto g = (color >> 8) % 256;
+                        auto b = color % 256;
                         r *= (1 - ((transY - fStart) / (fLength - 0.1)));
                         g *= (1 - ((transY - fStart) / (fLength)));
                         b *= (1 - ((transY - fStart) / (fLength - 0.05)));
-                        if(r > 255) r = 0;
-                        if(b > 255) b = 0;
+                        if (r > 255) r = 0;
+                        if (b > 255) b = 0;
                         color = 65536 * r + 256 * g + b;
                     }
                     if(transY < fEnd) buffer[x][y] = color;
@@ -322,12 +313,11 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
         }
     }
 
-    pixels = (Uint32*)(worldview->pixels);
-    assert(pixels);
+    auto pixels = (Uint32*)(worldview->pixels);
 
-    for(y = 0; y < wwHeight; ++y)
+    for (y = 0; y < wwHeight; ++y)
     {
-        for(x = 0; x < wwWidth; ++x)
+        for (x = 0; x < wwWidth; ++x)
         {
             *pixels = buffer[x][y];
             ++pixels;
@@ -336,10 +326,9 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
         pixels -= wwWidth;
     }
 
-    for(x = 0; x < wwWidth; ++x) for(y = wwHeight/3; y < 2*wwHeight/3; ++y) buffer[x][y] = 0;
-    for(y = 0; y <= wwHeight / (flashlight ? 2.45 : 3); ++y)
+    for (x = 0; x < wwWidth; ++x) for(y = wwHeight/3; y < 2*wwHeight/3; ++y) buffer[x][y] = 0;
+    for (y = 0; y <= wwHeight / (flashlight ? 2.45 : 3); ++y)
     {
-        /*color = 40 * SQR((double)y / (wwHeight / 3)) - 80 * ((double)y / (wwHeight / 3)) + 40;*/
         color = (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / wwHeight;
         color = 65536 * color + 256 * color + color;
         for(x = 0; x < wwWidth; ++x)
@@ -356,7 +345,7 @@ void generateNoise(sdl::Surface& noise, int amount)
 
     if(amount < 1) amount = 1;
 
-    pixels = (Uint32*)(noise->pixels);
+    auto pixels = (Uint32*)(noise->pixels);
     for(y = 0; y < 90; ++y)
     {
         for(x = 0; x < 160; ++x)
@@ -380,7 +369,7 @@ void generateNoiseLinear(sdl::Surface& noise, int amount)
 
     if(amount < 1) amount = 1;
 
-    pixels = (Uint32*)(noise->pixels);
+    auto pixels = (Uint32*)(noise->pixels);
     for(y = 0; y < 90; ++y)
     {
         for(x = 0; x < 160; ++x)
