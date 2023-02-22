@@ -11,19 +11,14 @@ void Surface::render(Surface& target, SDL_Rect& coords)
     SDL_BlitSurface(surface, nullptr, *target, &coords);
 }
 
-void Surface::render(SDL_Surface* target, SDL_Rect& coords)
-{
-    SDL_BlitSurface(surface, nullptr, target, &coords);
-}
-
 void Surface::render(Surface& target, SDL_Rect coords, SDL_Rect subset)
 {
     SDL_BlitSurface(surface, &subset, *target, &coords);
 }
 
-void Surface::render(Surface& target, SDL_Rect& coords, SDL_Rect& subset)
+void Surface::draw(Surface& target)
 {
-    SDL_BlitSurface(surface, &subset, *target, &coords);
+    SDL_SoftStretch(surface, nullptr, *target, nullptr);
 }
 
 Font::Font(const std::string& file, int size)

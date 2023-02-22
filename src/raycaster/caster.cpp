@@ -349,7 +349,7 @@ void Caster::frame(const int* worldMap, const Player& player, int flashlight)
 
 void Caster::draw(sdl::Surface& target)
 {
-    SDL_SoftStretch(*worldView, nullptr, *target, nullptr);
+    worldView.draw(target);
 }
 
 void Caster::generateNoise(sdl::Surface &noise, int amount)
