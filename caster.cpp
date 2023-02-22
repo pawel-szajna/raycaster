@@ -6,6 +6,7 @@
 #include "level.hpp"
 #include "sdl.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -35,7 +36,6 @@ double sidedX, sidedY;
 double deltadX, deltadY;
 double wallDist, wallX;
 
-double spriteX, spriteY;
 double transX, transY;
 double invDet;
 double ZBuffer[wwWidth];
@@ -52,39 +52,20 @@ Uint32 buffer[wwWidth][wwHeight];
 Uint32 textures[texCount][texWidth * texHeight];
 Uint32 color;
 
-Sprite* sprite;
-
-void SpriteSort(int* order, double* distance, int count)
+struct Sprite
 {
-    int i, j;
-    int gap = count;
-    int swapped = 0;
-    int x;
+    double x;
     double y;
+    int texture;
+    double distance;
+    bool dynamic{false}; // TODO: remove, as this is probably a big performance hit
+};
 
-    while(gap > 1 || swapped)
-    {
-        gap = (gap * 10) / 13;
-        if (gap == 9 || gap == 10) gap = 11;
-        if (gap < 1) gap = 1;
-        swapped = 0;
+std::vector<Sprite> sprites;
 
-        for(i = 0; i < count; ++i)
-        {
-            j = i + gap;
-            if(j > count) continue;
-            if(distance[i] < distance[j])
-            {
-                x = order[i];
-                order[i] = order[j];
-                order[j] = x;
-                y = distance[i];
-                distance[i] = distance[j];
-                distance[j] = y;
-                swapped = 1;
-            }
-        }
-    }
+namespace
+{
+constexpr auto DYNAMIC{true};
 }
 
 void LoadTexture(Uint32* memory, const char* filename)
@@ -108,7 +89,7 @@ void LoadTexture(Uint32* memory, const char* filename)
 
 sdl::Surface InitCaster(int* level, LevelInfo* li)
 {
-    int i, x, y, u;
+    int x, y, u;
     char filename[128];
 
     spdlog::info("Initializing caster");
@@ -120,27 +101,18 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
     numSprites = 0;
     for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y) if(BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6) ++numSprites;
 
-    if(sprite != nullptr) free(sprite);
-    if(spriteOrder != nullptr) free(spriteOrder);
-    if(spriteDistance != nullptr) free(spriteDistance);
-
-    sprite = new Sprite[numSprites];
-    spriteOrder = new int[numSprites];
-    spriteDistance = new double[numSprites];
-
+    sprites.clear();
+    sprites.reserve(numSprites);
     staticSprites = numSprites;
-
-    i = 0;
 
     for(x = 0; x < levelSize; ++x) for(y = 0; y < levelSize; ++y)
     {
+        spdlog::info("Adding sprite");
         u = BlockType(level, x, y);
         if(u == 2 || u == 5 || u == 6)
         {
-            sprite[i].x = 0.5 + x;
-            sprite[i].y = 0.5 + y;
-            sprite[i].texture = ((level[levelSize * x + y] / 16) % 16) + (u == 2 ? 16 : (u == 5 ? 32 : 0));
-            ++i;
+            auto texture = ((level[levelSize * x + y] / 16) % 16) + (u == 2 ? 16 : (u == 5 ? 32 : 0));
+            sprites.push_back(Sprite{0.5 + x, 0.5 + y, texture, 0});
         }
     }
 
@@ -187,29 +159,22 @@ sdl::Surface InitCaster(int* level, LevelInfo* li)
 
 void ResetDynamicSprites()
 {
+    spdlog::debug("Reset dynamic sprites");
     numSprites = staticSprites;
-
-    sprite = (Sprite*)realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
-    spriteOrder = (int*)realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
-    spriteDistance = (double*)realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
+    sprites.erase(std::remove_if(sprites.begin(), sprites.end(), [](const auto& sprite) { return sprite.dynamic; }),
+                  sprites.end());
 }
 
 void AddDynamicSprite(double x, double y, int texture)
 {
+    spdlog::debug("Add dynamic sprite @ {};{}", x, y);
     ++numSprites;
-
-    sprite = (Sprite*)realloc(sprite, numSprites * sizeof(Sprite)); assert(sprite);
-    spriteOrder = (int*)realloc(spriteOrder, numSprites * sizeof(int)); assert(spriteOrder);
-    spriteDistance = (double*)realloc(spriteDistance, numSprites * sizeof(double)); assert(spriteDistance);
-
-    sprite[numSprites - 1].x = x;
-    sprite[numSprites - 1].y = y;
-    sprite[numSprites - 1].texture = texture;
+    sprites.push_back(Sprite{x, y, texture, 0, DYNAMIC});
 }
 
 void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashlight)
 {
-    int i, x, y;
+    int x, y;
 
     fStart = flashlight ? 2.5 : 0.5;
     fEnd = flashlight ? 5.5 : 3.1;
@@ -299,27 +264,22 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
         ZBuffer[x] = wallDist;
     }
 
-    for(i = 0; i < numSprites; ++i)
+    std::transform(sprites.begin(), sprites.end(), sprites.begin(),
+                   [&position](auto sprite)
+                   {
+                       sprite.distance = SQR(position.x - sprite.x) + SQR(position.y - sprite.y);
+                       return sprite;
+                   });
+
+    std::sort(sprites.begin(), sprites.end(),
+              [](const auto &a, const auto &b) { return a.distance < b.distance; });
+
+    for (const auto& sprite : sprites)
     {
-        spriteOrder[i] = i;
-        spriteDistance[i] = (SQR(position.x - sprite[i].x) + SQR(position.y - sprite[i].y));
-    }
-
-    SpriteSort(spriteOrder, spriteDistance, numSprites);
-
-    for(i = 0; i < numSprites; ++i)
-    {
-        if (spriteOrder[i] < 0 || spriteOrder[i] >= numSprites)
-        {
-            continue;
-        }
-
-        spriteX = sprite[spriteOrder[i]].x - position.x;
-        spriteY = sprite[spriteOrder[i]].y - position.y;
         invDet = 1.0 / (position.planeX * position.dirY - position.dirX * position.planeY);
 
-        transX = invDet * (position.dirY * spriteX - position.dirX * spriteY);
-        transY = invDet * (-position.planeY * spriteX + position.planeX * spriteY);
+        transX = invDet * (position.dirY * (sprite.x - position.x) - position.dirX * (sprite.y - position.y));
+        transY = invDet * (-position.planeY * (sprite.x - position.x) + position.planeX * (sprite.y - position.y));
 
         spriteScreenX = (int)((wwWidth / 2) * (1 + transX / transY));
 
@@ -336,12 +296,12 @@ void CastFrame(SDL_Surface* worldview, int* worldMap, Player* player, int flashl
 
         for(x = dStartX; x < dEndX; ++x)
         {
-            texX = (int)(256 * (x - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
             if(transY > 0 && x > 0 && x < wwWidth && transY < ZBuffer[x]) for(y = dStart; y < dEnd; ++y)
             {
+                texX = (int)(256 * (x - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
                 d = y * 256 - wwHeight * 128 + spriteHeight * 128;
                 texY = ((d * texHeight) / spriteHeight) / 256;
-                color = textures[sprite[spriteOrder[i]].texture][texWidth * texY + texX];
+                color = textures[sprite.texture][texWidth * texY + texX];
                 if(color != 0x00FFFFFF)
                 {
                     if(transY > fStart && transY < fEnd)

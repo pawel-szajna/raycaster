@@ -77,4 +77,7 @@ extern TextureCache textures;
 
 Surface make_surface(int width, int height);
 Surface make_alpha_surface(int width, int height);
+
+void initialize();
+void teardown();
 }

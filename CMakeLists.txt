@@ -19,6 +19,7 @@ add_library(
     player.cpp
     ui.cpp
     sdl.cpp
+    game.cpp
 )
 
 target_compile_options(libraycaster PRIVATE -Wall -pedantic)

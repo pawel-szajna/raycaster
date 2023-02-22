@@ -69,13 +69,6 @@ struct GameConfig
     GameConfig();
 };
 
-struct Sprite
-{
-    double x;
-    double y;
-    int texture;
-};
-
 enum class GameMode
 {
     Initial,
