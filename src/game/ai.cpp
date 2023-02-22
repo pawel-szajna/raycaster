@@ -157,7 +157,7 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         return popup;
     }
 
-    ResetDynamicSprites();
+    // ResetDynamicSprites(); TODO
 
     auto& currentLevel = player->currentLevel();
     const auto& position = player->getPosition();
@@ -189,7 +189,7 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         }
 
         auto npcTexture = npc.alive ? (48 + npc.firstTexture + 8 * npc.currentTexture) : 88 + npc.firstTexture;
-        AddDynamicSprite(npc.x, npc.y, npcTexture);
+        // AddDynamicSprite(npc.x, npc.y, npcTexture); TODO
     }
 
     for (auto& item : currentLevel.items)
@@ -222,7 +222,7 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
 
         if (item.nottaken)
         {
-            AddDynamicSprite(item.x, item.y, 96 + item.number);
+            // AddDynamicSprite(item.x, item.y, 96 + item.number); TODO
         }
     }
 
