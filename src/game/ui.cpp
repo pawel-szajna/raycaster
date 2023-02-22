@@ -1,5 +1,5 @@
 #include "ui.hpp"
-#include "sdl.hpp"
+#include "sdlwrapper/sdl.hpp"
 
 #include <optional>
 #include <string>

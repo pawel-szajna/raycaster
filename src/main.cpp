@@ -1,4 +1,4 @@
-#include "game.hpp"
+#include "game/game.hpp"
 #include <spdlog/spdlog.h>
 
 #ifndef NDEBUG

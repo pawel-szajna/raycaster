@@ -10,39 +10,86 @@ endif()
 add_compile_definitions(SPDLOG_USE_STD_FORMAT)
 
 add_library(
-    libraycaster
-    ai.cpp
-    caster.cpp
-    data.cpp
-    generator.cpp
-    level.cpp
-    player.cpp
-    ui.cpp
-    sdl.cpp
-    game.cpp
+    sdlwrapper
+    src/sdlwrapper/sdl.cpp
 )
 
-target_compile_options(libraycaster PRIVATE -Wall -pedantic)
+target_include_directories(
+    sdlwrapper
+    PRIVATE
+    src/sdlwrapper
+)
+
+target_compile_options(
+    sdlwrapper
+    PRIVATE
+    -Wall -pedantic
+)
+
+add_library(
+    raycaster
+    src/raycaster/caster.cpp
+)
+
+target_include_directories(
+    raycaster
+    PRIVATE
+    src/raycaster
+)
+
+target_compile_options(
+    raycaster
+    PRIVATE
+    -Wall -pedantic
+)
+
+add_library(
+    game
+    src/game/ai.cpp
+    src/game/data.cpp
+    src/game/generator.cpp
+    src/game/level.cpp
+    src/game/player.cpp
+    src/game/ui.cpp
+    src/game/game.cpp
+)
+
+target_include_directories(
+    game
+    PRIVATE
+    src/game
+)
+
+target_compile_options(
+    game
+    PRIVATE
+    -Wall -pedantic
+)
 
 add_subdirectory(sprig)
-
 target_compile_options(sprig PUBLIC -Wno-narrowing -Wno-misleading-indentation)
 
 include_directories(
-    .
+    src
     sprig/source
 )
 
 add_executable(
-    raycaster
-    main.cpp
+    demo
+    src/main.cpp
 )
 
-target_compile_options(raycaster PUBLIC -Wall -pedantic)
+target_compile_options(
+    demo
+    PUBLIC
+    -Wall -pedantic
+)
 
 target_link_libraries(
+    demo
+    game
     raycaster
-    libraycaster
+    sdlwrapper
     SDL
     SDL_ttf
     m

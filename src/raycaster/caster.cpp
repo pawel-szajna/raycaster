@@ -2,9 +2,9 @@
 
 #include "SDL/SDL.h"
 
-#include "player.hpp"
-#include "level.hpp"
-#include "sdl.hpp"
+#include "game/player.hpp"
+#include "game/level.hpp"
+#include "sdlwrapper/sdl.hpp"
 
 #include <algorithm>
 #include <cmath>

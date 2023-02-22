@@ -12,11 +12,11 @@
 #include <spdlog/spdlog.h>
 
 #include "level.hpp"
-#include "caster.hpp"
+#include "raycaster/caster.hpp"
 #include "ai.hpp"
 #include "ui.hpp"
 #include "generator.hpp"
-#include "sdl.hpp"
+#include "sdlwrapper/sdl.hpp"
 
 namespace
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data.hpp"
+#include "game/data.hpp"
 
 #define wwWidth 540
 #define wwHeight 300

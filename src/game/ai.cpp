@@ -1,6 +1,6 @@
 #include "ai.hpp"
 
-#include "caster.hpp"
+#include "raycaster/caster.hpp"
 #include "player.hpp"
 
 #include <cstdio>

@@ -6,7 +6,7 @@
 
 #include "ai.hpp"
 #include "player.hpp"
-#include "sdl.hpp"
+#include "sdlwrapper/sdl.hpp"
 
 int BlockType(int* level, int x, int y)
 {

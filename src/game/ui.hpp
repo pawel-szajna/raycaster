@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data.hpp"
-#include "sdl.hpp"
+#include "sdlwrapper/sdl.hpp"
 
 #include <optional>
 
