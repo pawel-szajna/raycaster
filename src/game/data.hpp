@@ -3,7 +3,6 @@
 /* uncomment for release */
 /*#define NDEBUG*/
 
-#include "SDL/SDL.h"
 #include <cassert>
 #include <vector>
 #include <algorithm>
@@ -11,6 +10,9 @@
 
 constexpr auto speedFactor{1.1};
 constexpr auto levelSize{64};
+
+constexpr auto renderWidth{540};
+constexpr auto renderHeight{300};
 
 #define LEV(x,y) level[((x) * levelSize) + (y)]
 #define RND(min,max) ((rand() % ((max)-(min)))+(min))

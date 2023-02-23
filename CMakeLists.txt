@@ -23,7 +23,7 @@ target_include_directories(
 target_compile_options(
     sdlwrapper
     PRIVATE
-    -Wall -pedantic
+    -Wall -pedantic -O3
 )
 
 add_library(
@@ -40,7 +40,7 @@ target_include_directories(
 target_compile_options(
     raycaster
     PRIVATE
-    -Wall -pedantic
+    -Wall -pedantic -O3
 )
 
 add_library(
@@ -63,7 +63,7 @@ target_include_directories(
 target_compile_options(
     game
     PRIVATE
-    -Wall -pedantic
+    -Wall -pedantic -O0
 )
 
 add_subdirectory(sprig)
@@ -82,7 +82,7 @@ add_executable(
 target_compile_options(
     demo
     PUBLIC
-    -Wall -pedantic
+    -Wall -pedantic -O3
 )
 
 target_link_libraries(

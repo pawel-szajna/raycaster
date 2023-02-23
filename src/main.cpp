@@ -11,5 +11,5 @@ int main()
     spdlog::info("raycaster demo, version 2023");
 
     Game game;
-    game.work();
+    game.start();
 }

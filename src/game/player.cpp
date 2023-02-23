@@ -9,7 +9,12 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
-#define CANENTER(x) (!((x)==1 || (x)==2))
+#include "SDL/SDL.h"
+
+namespace
+{
+constexpr auto canEnter(auto x) { return x != 1 and x != 2; }
+}
 
 void Player::shoot(int* level)
 {
@@ -23,8 +28,7 @@ void Player::shoot(int* level)
 
     for (int i = 0; i < 100; ++i)
     {
-
-        if((!CANENTER(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
+        if((!canEnter(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
         if(KillNPC(bulletX, bulletY, currentLevel().npcs)) break;
 
         bulletX += position.dirX * 2;
@@ -51,8 +55,8 @@ void LoadText(char* texts)
 
 Player::Player(const GameConfig& config) :
     levelId(config.level),
-    position{.x = (double)config.pX,
-             .y = (double)config.pY,
+    position{.x = (double)config.pX + 0.5,
+             .y = (double)config.pY + 0.5,
              .dirX = -cos(config.dir * 0.7854),
              .dirY = -sin(config.dir * 0.7854),
              .planeX = -0.77 * sin(config.dir * 0.7854),
@@ -60,17 +64,27 @@ Player::Player(const GameConfig& config) :
 
 {}
 
-void MarkVisitedSub(char* visited, int x, int y)
+void MarkVisitedSub(std::array<bool, 4096>& visited, int x, int y)
 {
-    if(x>=0 && y>=0 && x < levelSize && y < levelSize) visited[levelSize * x + y] = 1;
+    if (x < 0 or  y < 0 or x >= levelSize or y >= levelSize)
+    {
+        return;
+    }
+
+    visited[levelSize * x + y] = 1;
 }
 
 void MarkVisited(Player* player, int x, int y)
 {
-    char* visited = player->currentLevel().visited;
+    auto& visited = player->currentLevel().visited;
 
-    if(visited[levelSize * x + y] == 2) return;
+    if (visited[levelSize * x + y])
+    {
+        return;
+    }
+
     visited[levelSize * x + y] = 2;
+
     MarkVisitedSub(visited, x - 1, y - 1);
     MarkVisitedSub(visited, x - 1, y);
     MarkVisitedSub(visited, x - 1, y + 1);
@@ -85,7 +99,7 @@ void MarkVisited(Player* player, int x, int y)
     MarkVisitedSub(visited, x + 2, y);
 }
 
-void Player::handleMovement(Uint8* keys, int* level, char* visited, double frameTime)
+void Player::handleMovement(uint8_t* keys, int* level, char* visited, double frameTime)
 {
     double mSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
     double rSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
@@ -102,36 +116,36 @@ void Player::handleMovement(Uint8* keys, int* level, char* visited, double frame
     if(keys[SDLK_UP])
     {
         collision = level[(int)(posX + dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
-        if(CANENTER(collision)) posX += dirX * mSpeed;
+        if (canEnter(collision)) posX += dirX * mSpeed;
         collision = level[(int)posX * levelSize + (int)(posY + dirY * mSpeed * 3)] % 16;
-        if(CANENTER(collision)) posY += dirY * mSpeed;
+        if (canEnter(collision)) posY += dirY * mSpeed;
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
     if(keys[SDLK_DOWN])
     {
         collision = level[(int)(posX - dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
-        if(CANENTER(collision)) posX -= dirX * mSpeed;
+        if (canEnter(collision)) posX -= dirX * mSpeed;
         collision = level[(int)posX * levelSize + (int)(posY - dirY * mSpeed * 3)] % 16;
-        if(CANENTER(collision)) posY -= dirY * mSpeed;
+        if (canEnter(collision)) posY -= dirY * mSpeed;
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
     if(keys[SDLK_z])
     {
         collision = level[(int)(posX - 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
-        if(CANENTER(collision)) posX -= mSpeed * sin(atan2(dirY, dirX));
+        if (canEnter(collision)) posX -= mSpeed * sin(atan2(dirY, dirX));
         collision = level[(int)posX * levelSize + (int)(posY + 3 * mSpeed * cos(atan2(dirY, dirX)))] % 16;
-        if(CANENTER(collision)) posY += mSpeed * cos(atan2(dirY, dirX));
+        if (canEnter(collision)) posY += mSpeed * cos(atan2(dirY, dirX));
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
     if(keys[SDLK_x])
     {
         collision = level[(int)(posX + 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
-        if(CANENTER(collision)) posX += mSpeed * sin(atan2(dirY, dirX));
+        if (canEnter(collision)) posX += mSpeed * sin(atan2(dirY, dirX));
         collision = level[(int)posX * levelSize + (int)(posY - 3 * mSpeed * cos(atan2(dirY, dirX)))] % 16;
-        if(CANENTER(collision)) posY -= mSpeed * cos(atan2(dirY, dirX));
+        if (canEnter(collision)) posY -= mSpeed * cos(atan2(dirY, dirX));
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
@@ -157,15 +171,15 @@ void Player::handleMovement(Uint8* keys, int* level, char* visited, double frame
         planeY = oldDir * sin(-rSpeed) + planeY * cos(-rSpeed);
     }
 
-    if(level[(int)posX * levelSize + (int)posY] % 16 == 6)
-    {
-        a = level[(int)posX * levelSize + (int)posY];
-
-        levelId = (a >> 8) % 16;
-        posX = ((a >> 12) % 256) + 0.5;
-        posY = ((a >> 20) % 256) + 0.5;
-        reloadLevel = true;
-    }
+//    if(level[(int)posX * levelSize + (int)posY] % 16 == 6)
+//    {
+//        a = level[(int)posX * levelSize + (int)posY];
+//
+//        levelId = (a >> 8) % 16;
+//        posX = ((a >> 12) % 256) + 0.5;
+//        posY = ((a >> 20) % 256) + 0.5;
+//        reloadLevel = true;
+//    }
 }
 
 int Player::blink()

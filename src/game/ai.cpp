@@ -66,12 +66,6 @@ void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
     npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, 1, 0, 0});
 }
 
-void AddItem(Items& items, double x, double y, int num)
-{
-    spdlog::debug("Adding new item #{} [{:1.0f};{:1.0f}]", num, x, y);
-    items.push_back(Item{x + 0.5, y + 0.5, 1, num});
-}
-
 void UpdateNode(int cx, int cy, int tx, int ty, int value)
 {
     int newv;

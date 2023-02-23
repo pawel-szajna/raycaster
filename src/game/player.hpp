@@ -1,20 +1,13 @@
 #pragma once
 
-#include "SDL/SDL.h"
 #include "data.hpp"
+#include "level.hpp"
+
+#include <format>
 #include <unordered_map>
+#include <cstdint>
 
 class GameConfig;
-
-struct PlayerLevel
-{
-    int id;
-    char visited[levelSize * levelSize]{};
-    Items items{};
-    NPCs npcs{};
-
-    explicit PlayerLevel(int id) : id(id) {}
-};
 
 struct Position
 {
@@ -26,7 +19,7 @@ struct Position
 class Player
 {
 public:
-    using PlayerLevels = std::unordered_map<int, PlayerLevel>;
+    using PlayerLevels = std::unordered_map<int, Level>;
 
     bool revolver{false};
     bool flashlight{false};
@@ -36,8 +29,7 @@ public:
     int levelId;
     bool reloadLevel{true};
 
-    PlayerLevel& currentLevel() { return current->second; }
-    const PlayerLevel& currentLevel() const { return current->second; }
+    Level& currentLevel() { return current->second; }
 
     explicit Player(const GameConfig& config);
 
@@ -45,7 +37,7 @@ public:
     {
         if (not levels.contains(levelId))
         {
-            levels.emplace(levelId, PlayerLevel(levelId));
+            levels.emplace(levelId, Level(std::format("map/level{}.dat", levelId)));
         }
 
         current = levels.find(levelId);
@@ -53,7 +45,7 @@ public:
 
     const Position& getPosition() const { return position; }
 
-    void handleMovement(Uint8* keys, int* level, char* visited, double frameTime);
+    void handleMovement(uint8_t* keys, int* level, char* visited, double frameTime);
     void shoot(int* level);
     int blink();
 

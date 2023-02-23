@@ -9,6 +9,8 @@
 
 namespace sdl
 {
+using Point2D = std::pair<int, int>;
+
 class Surface
 {
 public:
@@ -28,9 +30,13 @@ public:
     const SDL_Surface * operator*() const { return surface; }
     const SDL_Surface * operator->() const { return surface; }
 
+    void render(Surface& target);
     void render(Surface& target, SDL_Rect& coords);
     void render(Surface& target, SDL_Rect coords, SDL_Rect subset);
     void draw(Surface& target);
+    void setColorKey(uint32_t key);
+    void update();
+    Point2D size();
 
 private:
     SDL_Surface* surface{nullptr};
@@ -76,7 +82,16 @@ extern TextureCache textures;
 
 Surface make_surface(int width, int height);
 Surface make_alpha_surface(int width, int height);
+Surface make_main_window(int width, int height, bool fullScreen);
+
+Surface transform(Surface& surface, int scale);
 
 void initialize();
 void teardown();
+
+void setTitle(const std::string& title);
+void delay(int ms);
+double currentTime();
+void pollEvents();
+bool keyPressed(int key);
 }

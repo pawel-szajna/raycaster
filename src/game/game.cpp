@@ -1,7 +1,6 @@
 #include "game.hpp"
 
 #include "SDL/SDL.h"
-#include "SDL/SDL_ttf.h"
 #include "sprig.h"
 
 #include <cstdio>
@@ -9,6 +8,7 @@
 #include <cstring>
 #include <cmath>
 #include <ctime>
+#include <format>
 #include <spdlog/spdlog.h>
 
 #include "level.hpp"
@@ -20,25 +20,205 @@
 
 namespace
 {
-int OnKeyPress(SDL_Event* event, int key)
+constexpr auto noStateChange = std::nullopt;
+constexpr auto noiseWidth = 160;
+constexpr auto noiseHeight = 90;
+
+void fillWithNoise(sdl::Surface& noise, const std::function<int()>& transparencyApplier)
 {
-    if(event->type == SDL_KEYDOWN && event->key.keysym.sym == key)
+    auto pixels = (uint32_t*)noise->pixels;
+    for (auto y = 0; y < noiseHeight; ++y)
     {
-        event->type = 0;
-        return 1;
+        for (auto x = 0; x < noiseWidth; ++x)
+        {
+            auto pixel = rand() % 256;
+            pixel = (pixel << 16) + (pixel << 8) + pixel;
+            pixel += transparencyApplier();
+            *pixels = pixel;
+            ++pixels;
+        }
+
+        pixels += noise->pitch / 4;
+        pixels -= 160;
     }
-    return 0;
 }
-}
-
-Game::Game()
+void generateNoise(sdl::Surface& noise, int intensity)
 {
-    spdlog::debug("Initializing game structures");
-    sdl::initialize();
+    fillWithNoise(noise, [intensity]()
+                         {
+                             if (intensity <= 112) return (rand() % (256 * intensity / 112)) << 24;
+                             if (intensity == 128) return 255 << 24;
+                             return ((rand() % (2048 - 16 * intensity)) + 16 * intensity - 1792) << 24;
+                         });
+}
 
-    player = Player(config);
+void generateNoiseLinear(sdl::Surface& noise, int intensity)
+{
+    fillWithNoise(noise, [intensity]()
+                         {
+                             if (intensity <= 64) return (rand() % (4 * intensity)) << 24;
+                             if (intensity == 128) return 255 << 24;
+                             return ((rand() % (512 - 4 * intensity)) + 4 * intensity - 256) << 24;
+                         });
+}
+}
+
+class GameplayMode
+{
+public:
+    GameplayMode(sdl::Surface& screen, GameConfig& config, int& noiseLevel);
+    std::optional<GameMode> frame(double frameTime);
+
+private:
+    void reload();
+
+    int level[levelSize][levelSize];
+    char visited[levelSize][levelSize];
+    char texts[6][128];
+    bool paused{false};
+    bool flashlight{false};
+    int& noiseLevel;
+    GameConfig& config;
+    LevelInfo levelInfo{};
+    NPCs npcs{};
+    Player player;
+    sdl::Surface& screen;
+    sdl::Surface& gunHand;
+    std::unique_ptr<raycaster::Caster> caster;
+    std::optional<sdl::Surface> popup{};
+};
+
+GameplayMode::GameplayMode(sdl::Surface& screen,
+                           GameConfig& config,
+                           int& noiseLevel) :
+    noiseLevel(noiseLevel),
+    config(config),
+    player(config),
+    screen(screen),
+    gunHand(sdl::textures.get("gfx/gun/gun1.bmp"))
+{
     LoadText((char*)texts);
+}
+
+void GameplayMode::reload()
+{
+    spdlog::debug("Level reload triggered");
+
+    npcs = generate_npcs((int*)level);
+    InitAI((int*)level);
     InitUI();
+
+    player.switchLevel();
+    generate_map((int*)level, (int)player.getPosition().x, (int)player.getPosition().y, 1);
+    npcs = player.currentLevel().npcs;
+    ResetAI(npcs);
+
+    player.currentLevel().addItem(27, 46, 0);
+    player.currentLevel().addItem(27, 47, 1);
+    player.currentLevel().addItem(27, 48, 3);
+
+    caster = std::make_unique<raycaster::Caster>((int*) level, player.currentLevel().li);
+
+    player.reloadLevel = false;
+}
+
+std::optional<GameMode> GameplayMode::frame(double frameTime)
+{
+    if (player.reloadLevel)
+    {
+        reload();
+    }
+
+    auto keys = SDL_GetKeyState(nullptr);
+
+    if (not paused)
+    {
+        caster->frame((int*)level, player, flashlight and player.blink());
+        if (player.revolver)
+        {
+            SDL_Rect gunTarget{ renderWidth / 2 - 29, renderHeight - 100, 59, 100 };
+            gunHand.render(screen, gunTarget);
+        }
+    }
+    caster->draw(screen);
+
+    if (popup.has_value())
+    {
+        auto [popupWidth, popupHeight] = popup->size();
+        auto [screenWidth, screenHeight] = screen.size();
+        SDL_Rect popupPosition{static_cast<int16_t>(screenWidth / 2 - popupWidth / 2),
+                               static_cast<int16_t>(screenHeight / 2 - popupHeight / 2),
+                               static_cast<uint16_t>(popupWidth),
+                               static_cast<uint16_t>(popupHeight)};
+        popup->render(screen, popupPosition);
+    }
+
+    if (sdl::keyPressed(SDLK_RETURN) and popup.has_value())
+    {
+        popup = std::nullopt;
+        paused = false;
+    }
+
+    if (not paused)
+    {
+        player.handleMovement(keys, (int*) level, (char*) visited, frameTime);
+
+        auto nearest = AI_DistanceToNearestNPC(&player);
+        noiseLevel = (nearest < 4) ? ((nearest < 0.5) ? 128
+                                                      : ceil(nearest * (nearest * (5.9242 * nearest - 39.9883) + 35.5452) + 119.484))
+                                   : (!(rand() % 5) ? 2 : 1);
+        if (nearest < 0.5)
+        {
+            return GameMode::GameOver;
+        }
+
+        if (auto textId = AI_Tick(&player, frameTime, flashlight) > 0)
+        {
+            popup = messageWindow("", texts[textId], config);
+            paused = true;
+            return noStateChange;
+        }
+
+        if (sdl::keyPressed(SDLK_m))
+        {
+            popup = makeWindow(556, 556, "Mapa", config);
+            drawMap((int*) level, player).render(*popup);
+            paused = true;
+            return noStateChange;
+        }
+
+        if (sdl::keyPressed(SDLK_SPACE))
+        {
+            player.shoot((int*)level);
+        }
+    }
+
+    if (sdl::keyPressed(SDLK_f))
+    {
+        flashlight = not flashlight;
+    }
+
+    if (sdl::keyPressed(SDLK_ESCAPE) or sdl::keyPressed(SDLK_q))
+    {
+        return GameMode::Initial;
+    }
+
+    if (flashlight and not player.battery)
+    {
+        flashlight = false;
+    }
+
+    return noStateChange;
+}
+
+Game::Game() :
+    mainWindow((sdl::initialize(), sdl::make_main_window(config.sWidth, config.sHeight, config.fullScreen))),
+    screen(sdl::make_surface(renderWidth, renderHeight))
+{
+    InitUI();
+    initializeStates();
+
+    spdlog::debug("Game initialization complete");
 }
 
 Game::~Game()
@@ -47,265 +227,122 @@ Game::~Game()
     sdl::teardown();
 }
 
-void Game::work()
+void Game::initializeStates()
 {
-    int level[levelSize][levelSize];
-    char visited[levelSize][levelSize];
+    using onEntry = decltype(GameState::entryAction);
+    using onFrame = decltype(GameState::step);
 
-    int paused = 0;
-    int flashlight = 1;
-    int popup = 0;
-    int danger_level;
+    states[GameMode::Initial] =  {onEntry([&]() { entryInitial(); }),              onFrame([&](double) { return frameInitial(); })};
+    states[GameMode::MainMenu] = {onEntry([&]() { changeState(GameMode::Game); }), onFrame([ ](double) { return noStateChange; })};
+    states[GameMode::Game] =     {onEntry([&]() { entryGame(); }),                 onFrame([&](double frameTime) { return gameplay->frame(frameTime); })};
+    states[GameMode::GameOver] = {onEntry([&]() { entryGameOver(); }),             onFrame([&](double) { return frameGameOver(); })};
+    states[GameMode::Quit] =     {onEntry([ ]() {}),                               onFrame([ ](double) { return noStateChange; })};
+}
 
-    double nearest = 20;
+void Game::entryInitial()
+{
+    sdl::setTitle(config.title);
+}
 
-    LevelInfo levelinfo{};
-    NPCs npcs{};
+std::optional<GameMode> Game::frameInitial()
+{
+    SDL_Rect noticeTarget{84, 210, 0, 0};
+    SDL_Rect titleTarget{0, 60, 0, 0};
 
-    SDL_Surface* shade;
-    SDL_Surface* noise_big;
-    std::optional<sdl::Surface> popupWindow{};
-    std::optional<sdl::Surface> popupMap{};
-    SDL_Surface* gun_hand;
-    SDL_Surface* gun_shoot;
+    uiFontTitle.render(screen, titleTarget, "Techdemo");
+    uiFontNotice.render(screen, noticeTarget, "Prece enter key");
 
-    SDL_Event event = { 0 };
-    SDL_Rect r1 = { 0, 60, 0, 0 }, /* world view */
-    r2 = { 84, 210, 0, 0 }, /* world & noise target */
-    r4 = {0, 0, 8 * levelSize, 8 * levelSize }, /* map target */
-    r8 = { 0, 0, 128, 128 };
-
-    Uint8* keys;
-
-    double newTime = 0, oldTime = 0;
-    double frameTime;
-
-    char filename[128];
-
-    srand(time(NULL));
-
-    auto screen = sdl::Surface(SDL_SetVideoMode(config.sWidth, config.sHeight, 32, SDL_HWSURFACE | (config.fullScreen ? SDL_FULLSCREEN : 0)));
-    auto noise = sdl::make_alpha_surface(160, 90);
-
-    shade = SDL_LoadBMP("gfx/shade.bmp");
-
-    assert(shade);
-
-    SDL_ShowCursor(SDL_DISABLE);
-
-    SDL_SetColorKey(shade, SDL_SRCCOLORKEY, 0x00ffffff);
-
-    mode = GameMode::Initial;
-
-    /* for map drawing */
-    /* TODO: make this cleaner*/
-    r4.x = config.sWidth / 2 - 256;
-    r4.y = config.sHeight / 2 - 246;
-    danger_level = 1;
-
-    for(;;) switch(mode)
+    if (noiseLevel > 12)
     {
-        case GameMode::Initial:
-            SDL_WM_SetCaption(config.title, NULL);
-            for(;;)
-            {
-                if(danger_level > 12)
-                {
-                    // generateNoiseLinear(noise, danger_level);
-                    danger_level -= 2;
-                }
-                else
-                {
-                    // generateNoise(noise, 12);
-                }
+        noiseLevel -= 2;
+    }
 
-                noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
-                assert(noise_big);
+    if (sdl::keyPressed(SDLK_ESCAPE) or sdl::keyPressed(SDLK_q))
+    {
+        return GameMode::Quit;
+    }
 
-                uiFontNotice.render(screen, r2, "Prece enter key");
-                uiFontTitle.render(screen, r1, "Techdemo");
+    if (sdl::keyPressed(SDLK_RETURN))
+    {
+        return GameMode::Game;
+    }
 
-                // SDL_BlitSurface(noise_big, 0, *worldview, 0);
-                // SDL_SoftStretch(*worldview, 0, *screen, 0);
-                SDL_UpdateRect(*screen, 0, 0, 0, 0);
-                SDL_Delay(40);
+    return std::nullopt;
+}
 
-                SDL_PollEvent(&event);
+void Game::entryGame()
+{
+    spdlog::debug("Entering gameplay mode");
+    gameplay = std::make_unique<GameplayMode>(screen, config, noiseLevel);
+}
 
-                if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
-                {
-                    mode = GameMode::Quit;
-                    break;
-                }
+void Game::entryGameOver()
+{
+    gameOverStart = sdl::currentTime();
+    noiseLevel = 128;
+}
 
-                if(OnKeyPress(&event, SDLK_RETURN)) break;
-            }
-            if(mode != GameMode::Quit) mode = GameMode::MainMenu;
-            break;
+std::optional<GameMode> Game::frameGameOver() const
+{
+    if (sdl::currentTime() - gameOverStart >= 1600)
+    {
+        return GameMode::Initial;
+    }
 
-        case GameMode::MainMenu:
-            player = Player(config);
-            mode = GameMode::Game;
-            break;
+    return noStateChange;
+}
 
-        case GameMode::Game:
-            gun_hand = SDL_LoadBMP("gfx/gun/gun1.bmp");
-            gun_shoot = SDL_LoadBMP("gfx/gun/gun2.bmp");
-            assert(gun_hand);
-            assert(gun_shoot);
-            SDL_SetColorKey(gun_hand, SDL_SRCCOLORKEY, 0x00ffffff);
-            SDL_SetColorKey(gun_shoot, SDL_SRCCOLORKEY, 0x00ffffff);
+void Game::start()
+{
+    changeState(GameMode::Initial);
+    mainLoop();
+}
 
-            for(;;)
-            {
-                if(player.reloadLevel) /* load new level */
-                {
-                    sprintf(filename, "map/level%d.dat", player.levelId);
-                    LoadLevel((int*)level, &levelinfo, npcs, filename);
-                    generate_map((int*)level, (int)player.getPosition().x, (int)player.getPosition().y, 1);
-                    npcs = generate_npcs((int*)level);
-                    InitAI((int*)level);
-                    InitUI();
-                    sprintf(filename, "%s: Level %d", config.title, player.levelId);
-                    SDL_WM_SetCaption(filename, NULL);
-                    // worldview = InitCaster((int*)level, &levelinfo);
-                    caster = std::make_unique<raycaster::Caster>((int*)level, levelinfo);
+void Game::changeState(GameMode target)
+{
+    mode = target;
+    states[mode].entryAction();
+}
 
-                    player.switchLevel();
-                    npcs = player.currentLevel().npcs;
-                    ResetAI(npcs);
+void Game::applyNoise()
+{
+    auto noise = sdl::make_alpha_surface(noiseWidth, noiseHeight);
 
-                    AddItem(player.currentLevel().items, 27, 46, 0);
-                    AddItem(player.currentLevel().items, 27, 47, 1);
-                    AddItem(player.currentLevel().items, 27, 48, 3);
+    if (noiseLevel > 12)
+    {
+        generateNoiseLinear(noise, noiseLevel);
+    }
+    else
+    {
+        generateNoise(noise, 12);
+    }
 
-                    player.reloadLevel = false;
-                }
+    auto noiseBig = sdl::transform(noise, 4);
+    noiseBig.render(screen);
+}
 
-                keys = SDL_GetKeyState(NULL);
+void Game::mainLoop()
+{
+    double newTime{}, oldTime{};
 
-                /* render frame */
-                if(!paused)
-                {
-                    caster->frame((int*)level, player, flashlight and player.blink());
-                    // if(player.revolver) SDL_BlitSurface(gun_hand, 0, *worldview, &r9); TODO
-                }
-                // generateNoise(noise, danger_level);
-                // noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
-                // assert(noise_big);
-                // SDL_BlitSurface(noise_big, 0, *worldview, 0);
-                // SDL_SoftStretch(*worldview, 0, *screen, 0);
-                caster->draw(screen);
-                // SPG_Free(noise_big);
+    while (mode != GameMode::Quit)
+    {
+        sdl::pollEvents();
+        oldTime = newTime;
+        newTime = sdl::currentTime();
+        auto frameTime = (newTime - oldTime) / 1000;
 
-                /* draw UI */
+        auto stateChange = states[mode].step(frameTime);
+        if (stateChange.has_value())
+        {
+            changeState(*stateChange);
+        }
 
-                /* draw popups */
-                if (popupWindow.has_value())
-                {
-                    popupWindow->render(screen, r8);
-                }
+        applyNoise();
+        screen.draw(mainWindow);
+        mainWindow.update();
 
-                if (popupMap.has_value())
-                {
-                    popupMap->render(screen, r4);
-                }
-
-                /* close popups */
-                if(popup && OnKeyPress(&event, SDLK_RETURN))
-                {
-                    popupMap = std::nullopt;
-                    popupWindow = std::nullopt;
-                    paused = 0;
-                }
-
-                /* map */
-                if(OnKeyPress(&event, SDLK_m) and not popupWindow.has_value() and not popupMap.has_value())
-                {
-                    paused = 1;
-
-                    popupWindow = makeWindow(556, 556, "Mapa", &r8, config);
-                    popupMap = drawMap((int*)level, player);
-                }
-
-                /* draw everything */
-                SDL_UpdateRect(*screen, 0, 0, 0, 0);
-
-                SDL_PollEvent(&event);
-                oldTime = newTime;
-                newTime = SDL_GetTicks();
-                frameTime = (newTime - oldTime);
-                // if(frameTime < 16.67) SDL_Delay(16.67 - frameTime);
-                frameTime /= 1000.0;
-                sprintf(filename, "%s: %s [%d fps]", config.title, levelinfo.name, (int)(1 / frameTime));
-                SDL_WM_SetCaption(filename, NULL);
-
-                /* simulate the game world */
-                if(!paused)
-                {
-                    nearest = AI_DistanceToNearestNPC(&player);
-                    popup = AI_Tick(&player, frameTime, flashlight);
-                    player.handleMovement(keys, (int*)level, (char*)visited, frameTime);
-
-                    if(popup)
-                    {
-                        popupWindow = messageWindow("", texts[popup], &r8, config);
-                        paused = 1;
-                        popup = 1;
-                    }
-                }
-
-                danger_level = (nearest < 4) ? ( (nearest < 0.5) ? 128 : ceil(nearest * (nearest * (5.9242 * nearest - 39.9883) + 35.5452) + 119.484) ) : (!(rand() % 5) ? 2 : 1);
-
-                /* player dies */
-                if(nearest < 0.5)
-                {
-                    mode = GameMode::GameOver;
-                    break;
-                }
-
-                /* some functions */
-                /* saving is disabled in techdemo */
-                /*if(OnKeyPress(&event, SDLK_s)) SaveGame(&player, npcs, &levelinfo, (char*)visited);
-                if(OnKeyPress(&event, SDLK_l)) LoadGame(&player, npcs, &levelinfo, (char*)visited);*/
-                if(OnKeyPress(&event, SDLK_f)) flashlight = flashlight ? 0 : 1;
-                if(OnKeyPress(&event, SDLK_b)) player.battery += 50;
-                if(OnKeyPress(&event, SDLK_SPACE)) player.shoot((int*)level);
-
-                if(OnKeyPress(&event, SDLK_ESCAPE) || OnKeyPress(&event, SDLK_q) || event.type == SDL_QUIT)
-                {
-                    mode = GameMode::Initial;
-                    break;
-                }
-
-                if(flashlight && !(player.battery)) flashlight = 0;
-            }
-
-            break;
-
-        case GameMode::GameOver:
-            for(int a = 0; a < 40; ++a)
-            {
-                // generateNoise(noise, danger_level);
-                // noise_big = SPG_Transform(*noise, 0, 0, 4, 4, 0);
-                // assert(noise_big);
-                // SDL_BlitSurface(noise_big, 0, *worldview, 0);
-                // SDL_SoftStretch(*worldview, 0, *screen, 0);
-                // SPG_Free(noise_big);
-                SDL_PollEvent(&event);
-                SDL_UpdateRect(*screen, 0, 0, 0, 0);
-                SDL_Delay(40);
-            }
-            danger_level = 128;
-            mode = GameMode::Initial;
-            break;
-
-        case GameMode::Quit:
-            spdlog::info("Quitting");
-            return;
-
-        default:
-            spdlog::critical("Invalid game mode!");
-            return;
+        sdl::delay(15);
+        sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
     }
 }

@@ -18,9 +18,6 @@ class Caster
 public:
     Caster(int* level, const LevelInfo& li);
 
-    void generateNoise(sdl::Surface& noise, int amount);
-    void generateNoiseLinear(sdl::Surface& noise, int amount);
-
     void frame(const int *worldMap, const Player& player, int flashlight);
     void draw(sdl::Surface& target);
 

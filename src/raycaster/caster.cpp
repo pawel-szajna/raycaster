@@ -1,7 +1,5 @@
 #include "caster.hpp"
 
-#include "SDL/SDL.h"
-
 #include "game/player.hpp"
 #include "game/level.hpp"
 #include "sdlwrapper/sdl.hpp"
@@ -29,9 +27,6 @@ namespace
 {
 constexpr auto DYNAMIC{true};
 
-constexpr auto renderWidth{540};
-constexpr auto renderHeight{300};
-
 enum class Hit : bool
 {
     Horizontal,
@@ -51,6 +46,7 @@ constexpr auto outOfBounds(int x, int y, int size)
 
 void Caster::loadTexture(int id, const std::string& filename)
 {
+    spdlog::debug("Loading raycaster texture {}", filename);
     FILE *data = fopen(filename.c_str(), "rb");
     if (not data)
     {
@@ -90,7 +86,6 @@ Caster::Caster(int *level, const LevelInfo& li) :
     for (int x = 0; x < levelSize; ++x)
         for (int y = 0; y < levelSize; ++y)
         {
-            spdlog::info("Adding sprite");
             int u = BlockType(level, x, y);
             if (u == 2 || u == 5 || u == 6)
             {
@@ -351,53 +346,4 @@ void Caster::draw(sdl::Surface& target)
 {
     worldView.draw(target);
 }
-
-void Caster::generateNoise(sdl::Surface &noise, int amount)
-{
-    int x, y, buf;
-
-    if (amount < 1) amount = 1;
-
-    auto pixels = (Uint32 *) (noise->pixels);
-    for (y = 0; y < 90; ++y)
-    {
-        for (x = 0; x < 160; ++x)
-        {
-            buf = rand() % 256;
-            buf = (buf << 16) + (buf << 8) + (buf);
-            if (amount <= 112) buf += (rand() % (256 * amount / 112)) << 24;
-            else if (amount == 128) buf += 0xff000000;
-            else buf += ((rand() % (2048 - 16 * amount)) + 16 * amount - 1792) << 24;
-            *pixels = buf;
-            ++pixels;
-        }
-        pixels += noise->pitch / 4;
-        pixels -= 160;
-    }
-}
-
-void Caster::generateNoiseLinear(sdl::Surface &noise, int amount)
-{
-    int x, y, buf;
-
-    if (amount < 1) amount = 1;
-
-    auto pixels = (Uint32 *) (noise->pixels);
-    for (y = 0; y < 90; ++y)
-    {
-        for (x = 0; x < 160; ++x)
-        {
-            buf = rand() % 256;
-            buf = (buf << 16) + (buf << 8) + (buf);
-            if (amount <= 64) buf += (rand() % (4 * amount)) << 24;
-            else if (amount == 128) buf += 0xff000000;
-            else buf += ((rand() % (512 - 4 * amount)) + 4 * amount - 256) << 24;
-            *pixels = buf;
-            ++pixels;
-        }
-        pixels += noise->pitch / 4;
-        pixels -= 160;
-    }
-}
-
 }
