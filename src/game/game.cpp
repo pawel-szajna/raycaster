@@ -39,7 +39,7 @@ void fillWithNoise(sdl::Surface& noise, const std::function<int()>& transparency
         }
 
         pixels += noise->pitch / 4;
-        pixels -= 160;
+        pixels -= noiseWidth;
     }
 }
 void generateNoise(sdl::Surface& noise, int intensity)
@@ -117,7 +117,7 @@ void GameplayMode::reload()
     player.currentLevel().addItem(27, 47, 1);
     player.currentLevel().addItem(27, 48, 3);
 
-    caster = std::make_unique<raycaster::Caster>((int*) level, player.currentLevel().li);
+    caster = std::make_unique<raycaster::Caster>((int*)level, player.currentLevel().li);
 
     player.reloadLevel = false;
 }
@@ -133,7 +133,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
     if (not paused)
     {
-        caster->frame((int*)level, player, flashlight and player.blink());
+        caster->frame(player, flashlight and player.blink());
         if (player.revolver)
         {
             SDL_Rect gunTarget{ renderWidth / 2 - 29, renderHeight - 100, 59, 100 };
@@ -196,6 +196,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
     if (sdl::keyPressed(SDLK_f))
     {
         flashlight = not flashlight;
+        caster->changeVisibility(flashlight ? 2.5 : 0.5, flashlight ? 5.5 : 3.1);
     }
 
     if (sdl::keyPressed(SDLK_ESCAPE) or sdl::keyPressed(SDLK_q))

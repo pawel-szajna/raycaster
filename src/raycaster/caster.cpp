@@ -10,8 +10,6 @@
 
 namespace raycaster
 {
-Uint32 color;
-
 struct Sprite
 {
     double x;
@@ -42,6 +40,11 @@ constexpr auto outOfBounds(int x, int y, int size)
 {
     return x < 0 or y < 0 or x >= size or y >= size;
 }
+
+constexpr auto gray(uint32_t brightness)
+{
+    return 65536 * brightness + 256 * brightness + brightness;
+}
 }
 
 void Caster::loadTexture(int id, const std::string& filename)
@@ -67,10 +70,9 @@ void Caster::loadTexture(int id, const std::string& filename)
 }
 
 Caster::Caster(int *level, const LevelInfo& li) :
+    worldMap(level),
     worldView(sdl::make_surface(renderWidth, renderHeight))
 {
-    char filename[128];
-
     spdlog::info("Initializing caster");
     assert(level);
 
@@ -96,44 +98,19 @@ Caster::Caster(int *level, const LevelInfo& li) :
 
     spdlog::info("Loading textures");
 
-    for (int x = 1; x <= (li.textureSetSize); ++x)
-    {
-        sprintf(filename, "gfx/set_%d/%d.raw", li.textureSet, x);
-        loadTexture(x, filename);
-    }
-
-    for (int x = 0; x < li.pillarTexCount; ++x)
-    {
-        sprintf(filename, "gfx/%s.raw", li.pillarTex[x]);
-        loadTexture(16 + x, filename);
-    }
-
-    for (int x = 0; x < li.debrisTexCount; ++x)
-    {
-        sprintf(filename, "gfx/%s.raw", li.debrisTex[x]);
-        loadTexture(32 + x, filename);
-    }
+    for (int x = 1; x <= li.textureSetSize; ++x) loadTexture(x, std::format("gfx/set_%d/%d.raw", li.textureSet, x));
+    for (int x = 0; x < li.pillarTexCount; ++x) loadTexture(16 + x, std::format("gfx/%s.raw", li.pillarTex[x]));
+    for (int x = 0; x < li.debrisTexCount; ++x) loadTexture(32 + x, std::format("gfx/%s.raw", li.debrisTex[x]));
+    for (int x = 0; x < 4; ++x) loadTexture(96 + x, std::format("gfx/items/%d.raw", x));
 
     for (int x = 0; x < li.npcTexCount; ++x)
     {
-        sprintf(filename, "gfx/%s_walk1.raw", li.npcTex[x]);
-        loadTexture(48 + x, filename);
-        sprintf(filename, "gfx/%s_walk2.raw", li.npcTex[x]);
-        loadTexture(56 + x, filename);
-        sprintf(filename, "gfx/%s_walk3.raw", li.npcTex[x]);
-        loadTexture(64 + x, filename);
-        sprintf(filename, "gfx/%s_walk4.raw", li.npcTex[x]);
-        loadTexture(72 + x, filename);
-        sprintf(filename, "gfx/%s_shoot.raw", li.npcTex[x]);
-        loadTexture(80 + x, filename);
-        sprintf(filename, "gfx/%s_dead.raw", li.npcTex[x]);
-        loadTexture(88 + x, filename);
-    }
-
-    for (int x = 0; x < 4; ++x)
-    {
-        sprintf(filename, "gfx/items/%d.raw", x);
-        loadTexture(96 + x, filename);
+        loadTexture(48 + x, std::format("gfx/%s_walk1.raw", li.npcTex[x]));
+        loadTexture(56 + x, std::format("gfx/%s_walk2.raw", li.npcTex[x]));
+        loadTexture(64 + x, std::format("gfx/%s_walk3.raw", li.npcTex[x]));
+        loadTexture(72 + x, std::format("gfx/%s_walk4.raw", li.npcTex[x]));
+        loadTexture(80 + x, std::format("gfx/%s_shoot.raw", li.npcTex[x]));
+        loadTexture(88 + x, std::format("gfx/%s_dead.raw", li.npcTex[x]));
     }
 
     loadTexture(0, "gfx/transparent.raw");
@@ -153,22 +130,73 @@ void Caster::addDynamicSprite(double x, double y, int texture)
     sprites.push_back(Sprite{x, y, texture, 0, DYNAMIC});
 }
 
-void Caster::frame(const int* worldMap, const Player& player, int flashlight)
+void Caster::changeVisibility(double fullRange, double visibleRange)
 {
-    int x, y;
+    fadeStart = fullRange;
+    fadeEnd = visibleRange;
+}
 
-    auto fStart = flashlight ? 2.5 : 0.5;
-    auto fEnd = flashlight ? 5.5 : 3.1;
-    auto fLength = fEnd - fStart;
-
-    double ZBuffer[renderWidth];
-    Uint32 buffer[renderWidth][renderHeight];
-
-    const auto &position = player.getPosition();
-
-    for (x = 0; x < renderWidth; ++x)
+void Caster::frame(const Player& player, bool flashlight)
+{
+    for (auto y = 0; y <= renderHeight / (flashlight ? 2.45 : 3); ++y)
     {
-        auto camX = 2 * x / (double) renderWidth - 1; /* wspolrzedna x na plaszczyznie na ktorej rzutowany jest obraz */
+        auto intensity = (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / renderHeight;
+        auto color = gray(intensity);
+        for (auto x = 0; x < renderWidth; ++x)
+        {
+            buffer[x][y] = color;
+            buffer[x][renderHeight - y - 1] = color;
+        }
+    }
+
+    const auto& position = player.getPosition();
+
+    renderWalls(position);
+    renderSprites(position);
+
+    auto pixels = (Uint32*)(worldView->pixels);
+
+    for (auto y = 0; y < renderHeight; ++y)
+    {
+        for (auto x = 0; x < renderWidth; ++x)
+        {
+            *pixels = buffer[x][y];
+            ++pixels;
+        }
+        pixels += worldView->pitch / 4;
+        pixels -= renderWidth;
+    }
+}
+
+void Caster::fadePixel(uint32_t color, double distance, uint32_t& pixel) const
+{
+    if (distance >= fadeEnd)
+    {
+        return;
+    }
+
+    if (distance > fadeStart)
+    {
+        auto r = (color >> 16) % 256;
+        auto g = (color >> 8) % 256;
+        auto b = color % 256;
+        auto fadeLength = fadeEnd - fadeStart;
+        r *= (1 - ((distance - fadeStart) / (fadeLength - 0.1)));
+        g *= (1 - ((distance - fadeStart) / (fadeLength)));
+        b *= (1 - ((distance - fadeStart) / (fadeLength - 0.05)));
+        color = std::min(r, 255u) * 65536
+              + std::min(g, 255u) * 256
+              + std::min(b, 255u);
+    }
+
+    pixel = color;
+}
+
+void Caster::renderWalls(const Position& position)
+{
+    for (auto x = 0; x < renderWidth; ++x)
+    {
+        auto camX = 2 * x / (double)renderWidth - 1;
         auto rayPX = position.x;
         auto rayPY = position.y;
         auto rayDX = position.dirX + position.planeX * camX;
@@ -238,29 +266,20 @@ void Caster::frame(const int* worldMap, const Player& player, int flashlight)
             texX = TEXTURE_WIDTH - texX - 1;
         }
 
-        for (y = dStart; y < dEnd; ++y)
+        for (auto y = dStart; y < dEnd; ++y)
         {
             auto d = y * 256 - renderHeight * 128 + lineHeight * 128;
             auto texY = ((d * TEXTURE_HEIGHT) / lineHeight) / 256;
-            color = textures[tex][TEXTURE_HEIGHT * texY + texX];
-            if (wallDist > fStart && wallDist < fEnd)
-            {
-                auto r = (color >> 16) % 256;
-                auto g = (color >> 8) % 256;
-                auto b = color % 256;
-                r *= (1 - ((wallDist - fStart) / (fLength - 0.1)));
-                g *= (1 - ((wallDist - fStart) / (fLength)));
-                b *= (1 - ((wallDist - fStart) / (fLength - 0.05)));
-                if (r > 255) r = 0;
-                if (b > 255) b = 0;
-                color = 65536 * r + 256 * g + b;
-            }
-            if (wallDist < fEnd) buffer[x][y] = color;
+            auto color = textures[tex][TEXTURE_HEIGHT * texY + texX];
+            fadePixel(color, wallDist, buffer[x][y]);
         }
 
-        ZBuffer[x] = wallDist;
+        zBuffer[x] = wallDist;
     }
+}
 
+void Caster::renderSprites(const Position& position)
+{
     std::transform(sprites.begin(), sprites.end(), sprites.begin(),
                    [&position](auto sprite) {
                        sprite.distance = sqr(position.x - sprite.x) + sqr(position.y - sprite.y);
@@ -268,7 +287,7 @@ void Caster::frame(const int* worldMap, const Player& player, int flashlight)
                    });
 
     std::sort(sprites.begin(), sprites.end(),
-              [](const auto &a, const auto &b) { return a.distance < b.distance; });
+              [](const auto& a, const auto& b) { return a.distance < b.distance; });
 
     for (const auto &sprite: sprites)
     {
@@ -287,10 +306,10 @@ void Caster::frame(const int* worldMap, const Player& player, int flashlight)
         auto dStartX = std::max(-spriteWidth / 2 + spriteScreenX, 0);
         auto dEndX = std::min(spriteWidth / 2 + spriteScreenX, renderWidth - 1);
 
-        for (x = dStartX; x < dEndX; ++x)
+        for (auto x = dStartX; x < dEndX; ++x)
         {
-            if (transY > 0 && x > 0 && x < renderWidth && transY < ZBuffer[x])
-                for (y = dStart; y < dEnd; ++y)
+            if (transY > 0 && x > 0 && x < renderWidth && transY < zBuffer[x])
+                for (auto y = dStart; y < dEnd; ++y)
                 {
                     auto texX = (int) (256 * (x - (-spriteWidth / 2 + spriteScreenX)) * TEXTURE_WIDTH / spriteWidth) / 256;
                     auto d = y * 256 - renderHeight * 128 + spriteHeight * 128;
@@ -298,46 +317,9 @@ void Caster::frame(const int* worldMap, const Player& player, int flashlight)
                     auto color = textures[sprite.texture][TEXTURE_WIDTH * texY + texX];
                     if (color != 0x00FFFFFF)
                     {
-                        if (transY > fStart && transY < fEnd)
-                        {
-                            auto r = (color >> 16);
-                            auto g = (color >> 8) % 256;
-                            auto b = color % 256;
-                            r *= (1 - ((transY - fStart) / (fLength - 0.1)));
-                            g *= (1 - ((transY - fStart) / (fLength)));
-                            b *= (1 - ((transY - fStart) / (fLength - 0.05)));
-                            if (r > 255) r = 0;
-                            if (b > 255) b = 0;
-                            color = 65536 * r + 256 * g + b;
-                        }
-                        if (transY < fEnd) buffer[x][y] = color;
+                        fadePixel(color, transY, buffer[x][y]);
                     }
                 }
-        }
-    }
-
-    auto pixels = (Uint32 *) (worldView->pixels);
-
-    for (y = 0; y < renderHeight; ++y)
-    {
-        for (x = 0; x < renderWidth; ++x)
-        {
-            *pixels = buffer[x][y];
-            ++pixels;
-        }
-        pixels += worldView->pitch / 4;
-        pixels -= renderWidth;
-    }
-
-    for (x = 0; x < renderWidth; ++x) for (y = renderHeight / 3; y < 2 * renderHeight / 3; ++y) buffer[x][y] = 0;
-    for (y = 0; y <= renderHeight / (flashlight ? 2.45 : 3); ++y)
-    {
-        color = (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / renderHeight;
-        color = 65536 * color + 256 * color + color;
-        for (x = 0; x < renderWidth; ++x)
-        {
-            buffer[x][y] = color;
-            buffer[x][renderHeight - y - 1] = color;
         }
     }
 }
