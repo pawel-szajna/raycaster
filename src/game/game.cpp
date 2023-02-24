@@ -23,6 +23,7 @@ namespace
 constexpr auto noStateChange = std::nullopt;
 constexpr auto noiseWidth = 160;
 constexpr auto noiseHeight = 90;
+constexpr auto frameLimit = 16; // ms per frame max
 
 void fillWithNoise(sdl::Surface& noise, const std::function<int()>& transparencyApplier)
 {
@@ -71,6 +72,7 @@ public:
 
 private:
     void reload();
+    void switchFlashlight(bool target);
 
     int level[levelSize][levelSize];
     char visited[levelSize][levelSize];
@@ -100,6 +102,12 @@ GameplayMode::GameplayMode(sdl::Surface& screen,
     LoadText((char*)texts);
 }
 
+void GameplayMode::switchFlashlight(bool target)
+{
+    flashlight = target;
+    caster->changeVisibility(flashlight ? 2.5 : 0.5, flashlight ? 5.5 : 3.1);
+}
+
 void GameplayMode::reload()
 {
     spdlog::debug("Level reload triggered");
@@ -118,6 +126,7 @@ void GameplayMode::reload()
     player.currentLevel().addItem(27, 48, 3);
 
     caster = std::make_unique<raycaster::Caster>((int*)level, player.currentLevel().li);
+    switchFlashlight(false);
 
     player.reloadLevel = false;
 }
@@ -195,8 +204,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
     if (sdl::keyPressed(SDLK_f))
     {
-        flashlight = not flashlight;
-        caster->changeVisibility(flashlight ? 2.5 : 0.5, flashlight ? 5.5 : 3.1);
+        switchFlashlight(not flashlight);
     }
 
     if (sdl::keyPressed(SDLK_ESCAPE) or sdl::keyPressed(SDLK_q))
@@ -206,7 +214,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
     if (flashlight and not player.battery)
     {
-        flashlight = false;
+        switchFlashlight(false);
     }
 
     return noStateChange;
@@ -332,6 +340,10 @@ void Game::mainLoop()
         oldTime = newTime;
         newTime = sdl::currentTime();
         auto frameTime = (newTime - oldTime) / 1000;
+        if (frameTime < frameLimit)
+        {
+            sdl::delay(frameLimit - frameTime);
+        }
 
         auto stateChange = states[mode].step(frameTime);
         if (stateChange.has_value())
@@ -343,7 +355,6 @@ void Game::mainLoop()
         screen.draw(mainWindow);
         mainWindow.update();
 
-        sdl::delay(15);
-        sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
+        // sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
     }
 }

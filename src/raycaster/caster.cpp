@@ -98,19 +98,19 @@ Caster::Caster(int *level, const LevelInfo& li) :
 
     spdlog::info("Loading textures");
 
-    for (int x = 1; x <= li.textureSetSize; ++x) loadTexture(x, std::format("gfx/set_%d/%d.raw", li.textureSet, x));
-    for (int x = 0; x < li.pillarTexCount; ++x) loadTexture(16 + x, std::format("gfx/%s.raw", li.pillarTex[x]));
-    for (int x = 0; x < li.debrisTexCount; ++x) loadTexture(32 + x, std::format("gfx/%s.raw", li.debrisTex[x]));
-    for (int x = 0; x < 4; ++x) loadTexture(96 + x, std::format("gfx/items/%d.raw", x));
+    for (int x = 1; x <= li.textureSetSize; ++x) loadTexture(x, std::format("gfx/set_{}/{}.raw", li.textureSet, x));
+    for (int x = 0; x < li.pillarTexCount; ++x) loadTexture(16 + x, std::format("gfx/{}.raw", li.pillarTex[x]));
+    for (int x = 0; x < li.debrisTexCount; ++x) loadTexture(32 + x, std::format("gfx/{}.raw", li.debrisTex[x]));
+    for (int x = 0; x < 4; ++x) loadTexture(96 + x, std::format("gfx/items/{}.raw", x));
 
     for (int x = 0; x < li.npcTexCount; ++x)
     {
-        loadTexture(48 + x, std::format("gfx/%s_walk1.raw", li.npcTex[x]));
-        loadTexture(56 + x, std::format("gfx/%s_walk2.raw", li.npcTex[x]));
-        loadTexture(64 + x, std::format("gfx/%s_walk3.raw", li.npcTex[x]));
-        loadTexture(72 + x, std::format("gfx/%s_walk4.raw", li.npcTex[x]));
-        loadTexture(80 + x, std::format("gfx/%s_shoot.raw", li.npcTex[x]));
-        loadTexture(88 + x, std::format("gfx/%s_dead.raw", li.npcTex[x]));
+        loadTexture(48 + x, std::format("gfx/{}_walk1.raw", li.npcTex[x]));
+        loadTexture(56 + x, std::format("gfx/{}_walk2.raw", li.npcTex[x]));
+        loadTexture(64 + x, std::format("gfx/{}_walk3.raw", li.npcTex[x]));
+        loadTexture(72 + x, std::format("gfx/{}_walk4.raw", li.npcTex[x]));
+        loadTexture(80 + x, std::format("gfx/{}_shoot.raw", li.npcTex[x]));
+        loadTexture(88 + x, std::format("gfx/{}_dead.raw", li.npcTex[x]));
     }
 
     loadTexture(0, "gfx/transparent.raw");
