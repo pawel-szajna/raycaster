@@ -93,6 +93,7 @@ target_link_libraries(
     SDL
     SDL_ttf
     m
+    tbb
     sprig
     spdlog::spdlog
 )

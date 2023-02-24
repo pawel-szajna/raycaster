@@ -6,6 +6,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <execution>
+#include <ranges>
 #include <spdlog/spdlog.h>
 
 namespace raycaster
@@ -199,95 +201,103 @@ void Caster::fadePixel(uint32_t color, double distance, uint32_t& pixel) const
 
 void Caster::renderWalls(const Position& position)
 {
-    for (auto x = 0; x < renderWidth; ++x)
-    {
-        auto camX = 2 * x / (double)renderWidth - 1;
-        auto rayPX = position.x;
-        auto rayPY = position.y;
-        auto rayDX = position.dirX + position.planeX * camX;
-        auto rayDY = position.dirY + position.planeY * camX;
-        auto mapX = (int) rayPX;
-        auto mapY = (int) rayPY;
-        auto deltadX = sqrt(1 + sqr(rayDY) / sqr(rayDX));
-        auto deltadY = sqrt(1 + sqr(rayDX) / sqr(rayDY));
-        auto stepX = (rayDX < 0) ? -1 : 1;
-        auto stepY = (rayDY < 0) ? -1 : 1;
-        auto sidedX = (stepX < 0) ? (rayPX - mapX) * deltadX : (mapX + 1.0 - rayPX) * deltadX;
-        auto sidedY = (stepY < 0) ? (rayPY - mapY) * deltadY : (mapY + 1.0 - rayPY) * deltadY;
-        Hit side{};
+    auto columns = std::ranges::views::iota(0, renderWidth);
+    std::transform(std::execution::par,
+                   std::begin(columns),
+                   std::end(columns),
+                   std::begin(buffer),
+                   [&] (auto x)
+                   {
+                       decltype(buffer)::value_type column{};
 
-        while (not outOfBounds(mapX, mapY, levelSize))
-        {
-            if (sidedX < sidedY)
-            {
-                sidedX += deltadX;
-                mapX += stepX;
-                side = Hit::Horizontal;
-            }
-            else
-            {
-                sidedY += deltadY;
-                mapY += stepY;
-                side = Hit::Vertical;
-            }
+                       auto camX = 2 * x / (double)renderWidth - 1;
+                       auto rayPX = position.x;
+                       auto rayPY = position.y;
+                       auto rayDX = position.dirX + position.planeX * camX;
+                       auto rayDY = position.dirY + position.planeY * camX;
+                       auto mapX = (int) rayPX;
+                       auto mapY = (int) rayPY;
+                       auto deltadX = sqrt(1 + sqr(rayDY) / sqr(rayDX));
+                       auto deltadY = sqrt(1 + sqr(rayDX) / sqr(rayDY));
+                       auto stepX = (rayDX < 0) ? -1 : 1;
+                       auto stepY = (rayDY < 0) ? -1 : 1;
+                       auto sidedX = (stepX < 0) ? (rayPX - mapX) * deltadX : (mapX + 1.0 - rayPX) * deltadX;
+                       auto sidedY = (stepY < 0) ? (rayPY - mapY) * deltadY : (mapY + 1.0 - rayPY) * deltadY;
+                       Hit side{};
 
-            if ((worldMap[mapX * levelSize + mapY] % 16) == 1)
-            {
-                break;
-            }
-        }
+                       while (not outOfBounds(mapX, mapY, levelSize))
+                       {
+                           if (sidedX < sidedY)
+                           {
+                               sidedX += deltadX;
+                               mapX += stepX;
+                               side = Hit::Horizontal;
+                           }
+                           else
+                           {
+                               sidedY += deltadY;
+                               mapY += stepY;
+                               side = Hit::Vertical;
+                           }
 
-        if (outOfBounds(mapX, mapY, levelSize))
-        {
-            continue;
-        }
+                           if ((worldMap[mapX * levelSize + mapY] % 16) == 1)
+                           {
+                               break;
+                           }
+                       }
 
-        auto wallDist = side == Hit::Vertical
-                        ? fabs((mapY - rayPY + (1 - stepY) / 2) / rayDY)
-                        : fabs((mapX - rayPX + (1 - stepX) / 2) / rayDX);
+                       if (outOfBounds(mapX, mapY, levelSize))
+                       {
+                           return column;
+                       }
 
-        if (wallDist > fadeEnd)
-        {
-            zBuffer[x] = fadeEnd;
-            continue;
-        }
+                       auto wallDist = side == Hit::Vertical
+                                     ? fabs((mapY - rayPY + (1 - stepY) / 2) / rayDY)
+                                     : fabs((mapX - rayPX + (1 - stepX) / 2) / rayDX);
 
-        auto lineHeight = abs((int) (renderHeight / wallDist));
-        auto dStart = std::max(-lineHeight / 2 + renderHeight / 2, 0);
-        auto dEnd = std::min(lineHeight / 2 + renderHeight / 2, renderHeight - 1);
+                       if (wallDist > fadeEnd)
+                       {
+                           zBuffer[x] = fadeEnd;
+                           return column;
+                       }
 
-        auto tex = (worldMap[mapX * levelSize + mapY] >> 4);
-        if (side == Hit::Horizontal and position.x < mapX)
-        {
-            tex >>= 8;
-        }
-        if (side == Hit::Vertical)
-        {
-            if (position.y < mapY) tex >>= 12;
-            else tex >>= 4;
-        }
-        tex %= 16;
+                       auto lineHeight = abs((int) (renderHeight / wallDist));
+                       auto dStart = std::max(-lineHeight / 2 + renderHeight / 2, 0);
+                       auto dEnd = std::min(lineHeight / 2 + renderHeight / 2, renderHeight - 1);
 
-        auto wallX = side == Hit::Vertical
-                     ? rayPX + ((mapY - rayPY + (1 - stepY) / 2) / rayDY) * rayDX
-                     : rayPY + ((mapX - rayPX + (1 - stepX) / 2) / rayDX) * rayDY;
-        wallX -= floor(wallX);
-        auto texX = (int) (wallX * (double) TEXTURE_WIDTH);
-        if ((side == Hit::Horizontal and rayDX > 0) or (side == Hit::Vertical && rayDY < 0))
-        {
-            texX = TEXTURE_WIDTH - texX - 1;
-        }
+                       auto tex = (worldMap[mapX * levelSize + mapY] >> 4);
+                       if (side == Hit::Horizontal and position.x < mapX)
+                       {
+                           tex >>= 8;
+                       }
+                       if (side == Hit::Vertical)
+                       {
+                           if (position.y < mapY) tex >>= 12;
+                           else tex >>= 4;
+                       }
+                       tex %= 16;
 
-        for (auto y = dStart; y < dEnd; ++y)
-        {
-            auto d = y * 256 - renderHeight * 128 + lineHeight * 128;
-            auto texY = ((d * TEXTURE_HEIGHT) / lineHeight) / 256;
-            auto color = textures[tex][TEXTURE_HEIGHT * texY + texX];
-            fadePixel(color, wallDist, buffer[x][y]);
-        }
+                       auto wallX = side == Hit::Vertical
+                                  ? rayPX + ((mapY - rayPY + (1 - stepY) / 2) / rayDY) * rayDX
+                                  : rayPY + ((mapX - rayPX + (1 - stepX) / 2) / rayDX) * rayDY;
+                       wallX -= floor(wallX);
+                       auto texX = (int) (wallX * (double) TEXTURE_WIDTH);
+                       if ((side == Hit::Horizontal and rayDX > 0) or (side == Hit::Vertical && rayDY < 0))
+                       {
+                           texX = TEXTURE_WIDTH - texX - 1;
+                       }
 
-        zBuffer[x] = wallDist;
-    }
+                       for (auto y = dStart; y < dEnd; ++y)
+                       {
+                           auto d = y * 256 - renderHeight * 128 + lineHeight * 128;
+                           auto texY = ((d * TEXTURE_HEIGHT) / lineHeight) / 256;
+                           auto color = textures[tex][TEXTURE_HEIGHT * texY + texX];
+                           fadePixel(color, wallDist, column[y]);
+                       }
+
+                       zBuffer[x] = wallDist;
+                       return column;
+                   });
 }
 
 void Caster::renderSprites(const Position& position)

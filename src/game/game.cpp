@@ -23,7 +23,7 @@ namespace
 constexpr auto noStateChange = std::nullopt;
 constexpr auto noiseWidth = 160;
 constexpr auto noiseHeight = 90;
-constexpr auto frameLimit = 5; // ms per frame max
+constexpr auto frameLimit = 7; // ms per frame max
 
 void fillWithNoise(sdl::Surface& noise, const std::function<int()>& transparencyApplier)
 {
