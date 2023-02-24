@@ -41,9 +41,14 @@ constexpr auto outOfBounds(int x, int y, int size)
     return x < 0 or y < 0 or x >= size or y >= size;
 }
 
+constexpr auto color(uint32_t red, uint32_t green, uint32_t blue)
+{
+    return 65536 * red + 256 * green + blue;
+}
+
 constexpr auto gray(uint32_t brightness)
 {
-    return 65536 * brightness + 256 * brightness + brightness;
+    return color(brightness, brightness, brightness);
 }
 }
 
@@ -138,9 +143,9 @@ void Caster::changeVisibility(double fullRange, double visibleRange)
 
 void Caster::frame(const Player& player, bool flashlight)
 {
-    for (auto y = 0; y <= renderHeight / (flashlight ? 2.45 : 3); ++y)
+    for (auto y = 0; y < renderHeight / 2; ++y)
     {
-        auto intensity = (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / renderHeight;
+        auto intensity = std::max(0, (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / renderHeight);
         auto color = gray(intensity);
         for (auto x = 0; x < renderWidth; ++x)
         {
@@ -172,21 +177,22 @@ void Caster::fadePixel(uint32_t color, double distance, uint32_t& pixel) const
 {
     if (distance >= fadeEnd)
     {
+        pixel = 0;
         return;
     }
 
     if (distance > fadeStart)
     {
-        auto r = (color >> 16) % 256;
-        auto g = (color >> 8) % 256;
-        auto b = color % 256;
+        auto r = ((int32_t)color >> 16) % 256;
+        auto g = ((int32_t)color >> 8) % 256;
+        auto b = (int32_t)color % 256;
         auto fadeLength = fadeEnd - fadeStart;
         r *= (1 - ((distance - fadeStart) / (fadeLength - 0.1)));
         g *= (1 - ((distance - fadeStart) / (fadeLength)));
         b *= (1 - ((distance - fadeStart) / (fadeLength - 0.05)));
-        color = std::min(r, 255u) * 65536
-              + std::min(g, 255u) * 256
-              + std::min(b, 255u);
+        color = std::max(r, 0) * 65536
+              + std::max(g, 0) * 256
+              + std::max(b, 0);
     }
 
     pixel = color;
@@ -240,6 +246,13 @@ void Caster::renderWalls(const Position& position)
         auto wallDist = side == Hit::Vertical
                         ? fabs((mapY - rayPY + (1 - stepY) / 2) / rayDY)
                         : fabs((mapX - rayPX + (1 - stepX) / 2) / rayDX);
+
+        if (wallDist > fadeEnd)
+        {
+            zBuffer[x] = fadeEnd;
+            continue;
+        }
+
         auto lineHeight = abs((int) (renderHeight / wallDist));
         auto dStart = std::max(-lineHeight / 2 + renderHeight / 2, 0);
         auto dEnd = std::min(lineHeight / 2 + renderHeight / 2, renderHeight - 1);

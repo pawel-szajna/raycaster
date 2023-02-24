@@ -23,7 +23,7 @@ namespace
 constexpr auto noStateChange = std::nullopt;
 constexpr auto noiseWidth = 160;
 constexpr auto noiseHeight = 90;
-constexpr auto frameLimit = 16; // ms per frame max
+constexpr auto frameLimit = 5; // ms per frame max
 
 void fillWithNoise(sdl::Surface& noise, const std::function<int()>& transparencyApplier)
 {
@@ -355,6 +355,6 @@ void Game::mainLoop()
         screen.draw(mainWindow);
         mainWindow.update();
 
-        // sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
+         sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
     }
 }
