@@ -35,6 +35,7 @@ public:
     void render(Surface& target, SDL_Rect coords, SDL_Rect subset);
     void draw(Surface& target);
     void setColorKey(uint32_t key);
+    void clear();
     void update();
     Point2D size();
 

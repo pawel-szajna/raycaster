@@ -142,7 +142,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
     if (not paused)
     {
-        caster->frame(player, flashlight and player.blink());
+        caster->frame(player);
         if (player.revolver)
         {
             SDL_Rect gunTarget{ renderWidth / 2 - 29, renderHeight - 100, 59, 100 };
@@ -251,6 +251,7 @@ void Game::initializeStates()
 void Game::entryInitial()
 {
     sdl::setTitle(config.title);
+    noiseLevel = 128;
 }
 
 std::optional<GameMode> Game::frameInitial()
@@ -263,7 +264,7 @@ std::optional<GameMode> Game::frameInitial()
 
     if (noiseLevel > 12)
     {
-        noiseLevel -= 2;
+        noiseLevel = 128 - (int)(sdl::currentTime() - stateStartTime) * 106 / 1500;
     }
 
     if (sdl::keyPressed(SDLK_ESCAPE) or sdl::keyPressed(SDLK_q))
@@ -287,13 +288,12 @@ void Game::entryGame()
 
 void Game::entryGameOver()
 {
-    gameOverStart = sdl::currentTime();
     noiseLevel = 128;
 }
 
 std::optional<GameMode> Game::frameGameOver() const
 {
-    if (sdl::currentTime() - gameOverStart >= 1600)
+    if (sdl::currentTime() - stateStartTime >= 1600)
     {
         return GameMode::Initial;
     }
@@ -310,6 +310,7 @@ void Game::start()
 void Game::changeState(GameMode target)
 {
     mode = target;
+    stateStartTime = sdl::currentTime();
     states[mode].entryAction();
 }
 
@@ -345,6 +346,8 @@ void Game::mainLoop()
             sdl::delay(frameLimit - frameTime);
         }
 
+        screen.clear();
+
         auto stateChange = states[mode].step(frameTime);
         if (stateChange.has_value())
         {
@@ -355,6 +358,6 @@ void Game::mainLoop()
         screen.draw(mainWindow);
         mainWindow.update();
 
-         sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
+        sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
     }
 }

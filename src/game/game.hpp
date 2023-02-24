@@ -52,7 +52,7 @@ private:
     sdl::Surface screen;
     int noiseLevel{0};
 
-    double gameOverStart{};
+    double stateStartTime{};
 
     std::unordered_map<GameMode, GameState> states;
     std::unique_ptr<GameplayMode> gameplay{nullptr};

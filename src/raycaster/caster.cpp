@@ -141,12 +141,11 @@ void Caster::changeVisibility(double fullRange, double visibleRange)
     fadeEnd = visibleRange;
 }
 
-void Caster::frame(const Player& player, bool flashlight)
+void Caster::frame(const Player& player)
 {
     for (auto y = 0; y < renderHeight / 2; ++y)
     {
-        auto intensity = std::max(0, (flashlight ? 40 : 30) - (flashlight ? 98 : 90) * y / renderHeight);
-        auto color = gray(intensity);
+        auto color = gray(std::max(0, 30 - 90 * y / renderHeight));
         for (auto x = 0; x < renderWidth; ++x)
         {
             buffer[x][y] = color;

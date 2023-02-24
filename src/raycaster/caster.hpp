@@ -20,7 +20,7 @@ class Caster
 public:
     Caster(int* level, const LevelInfo& li);
 
-    void frame(const Player& player, bool flashlight);
+    void frame(const Player& player);
     void draw(sdl::Surface& target);
 
     void changeVisibility(double fullRange, double visibleRange);

@@ -37,6 +37,11 @@ void Surface::update()
     SDL_UpdateRect(surface, 0, 0, 0, 0);
 }
 
+void Surface::clear()
+{
+    SDL_FillRect(surface, nullptr, 0);
+}
+
 Point2D Surface::size()
 {
     return Point2D{surface->clip_rect.w, surface->clip_rect.h};
