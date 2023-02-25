@@ -3,6 +3,7 @@
 #include "data.hpp"
 #include "player.hpp"
 #include "sdlwrapper/sdl.hpp"
+#include "ui.hpp"
 
 #include <functional>
 #include <memory>
@@ -50,10 +51,12 @@ private:
 
     sdl::Surface mainWindow;
     sdl::Surface screen;
-    int noiseLevel{0};
 
+    int noiseLevel{0};
     double stateStartTime{};
 
     std::unordered_map<GameMode, GameState> states;
     std::unique_ptr<GameplayMode> gameplay{nullptr};
+
+    UI ui;
 };

@@ -5,13 +5,26 @@
 
 #include <optional>
 
-extern sdl::Font uiFont;
-extern sdl::Font uiFontHeader;
-extern sdl::Font uiFontNotice;
-extern sdl::Font uiFontTitle;
-extern SDL_Color uiFG;
-extern SDL_Color uiBG;
+class UI
+{
+public:
+    UI(sdl::Surface& target);
 
-void InitUI();
-sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title, const GameConfig& cfg);
-sdl::Surface messageWindow(const std::string& title, const std::string& message, const GameConfig& cfg);
+    sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title, const GameConfig& cfg);
+    sdl::Surface messageWindow(const std::string& title, const std::string& message, const GameConfig& cfg);
+
+    struct Fonts
+    {
+        sdl::Font main;
+        sdl::Font header;
+        sdl::Font notice;
+        sdl::Font title;
+    } fonts;
+
+private:
+    SDL_Color uiFG;
+    SDL_Color uiBG;
+
+    sdl::Surface& target;
+};
+

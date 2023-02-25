@@ -5,40 +5,31 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-sdl::Font uiFont;
-sdl::Font uiFontHeader;
-sdl::Font uiFontNotice;
-sdl::Font uiFontTitle;
-
-SDL_Color uiFG;
-SDL_Color uiBG;
-
-void InitUI()
+UI::UI(sdl::Surface &target) :
+    fonts { sdl::Font("gfx/font.ttf", 12),
+            sdl::Font("gfx/fontbold.ttf", 16),
+            sdl::Font("gfx/hardman.ttf", 32),
+            sdl::Font("gfx/hardman.ttf", 71) },
+    uiFG({0, 0, 0}),
+    uiBG({255, 255, 255}),
+    target(target)
 {
-    uiFont = sdl::Font("gfx/font.ttf", 12);
-    uiFontHeader = sdl::Font("gfx/fontbold.ttf", 16);
-    uiFontNotice = sdl::Font("gfx/hardman.ttf", 32);
-    uiFontTitle = sdl::Font("gfx/hardman.ttf", 71);
-
-    uiFG.r = 0; uiFG.g = 0; uiFG.b = 0;
-    uiBG.r = 255; uiBG.g = 255; uiBG.b = 255;
-
-    spdlog::info("Fonts loaded succesfully");
+    spdlog::info("UI initialized");
 }
 
-sdl::Surface messageWindow(const std::string& title, const std::string& msg, const GameConfig& cfg)
+sdl::Surface UI::messageWindow(const std::string& title, const std::string& msg, const GameConfig& cfg)
 {
     SDL_Rect r = { 24, 52, 0, 0 }, p = { 24, 24, 0, 0 };
 
     auto window = makeWindow(480, 128, std::nullopt, cfg);
 
-    uiFont.render(window, r, msg);
-    uiFontHeader.render(window, p, title);
+    fonts.main.render(window, r, msg);
+    fonts.header.render(window, p, title);
 
     return window;
 }
 
-sdl::Surface makeWindow(int width, int height, const std::optional<std::string>& title, const GameConfig& cfg)
+sdl::Surface UI::makeWindow(int width, int height, const std::optional<std::string>& title, const GameConfig& cfg)
 {
     SDL_Rect box8px{0, 0, 8, 8};
     Sint16 x, y, w = (Sint16)width, h = (Sint16)height;
@@ -68,7 +59,7 @@ sdl::Surface makeWindow(int width, int height, const std::optional<std::string>&
     if (title.has_value())
     {
         SDL_Rect tgt{8, 8, 0, 0};
-        uiFontHeader.render(window, tgt, *title);
+        fonts.header.render(window, tgt, *title);
     }
 
     return window;

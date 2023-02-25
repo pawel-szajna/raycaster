@@ -67,7 +67,7 @@ void generateNoiseLinear(sdl::Surface& noise, int intensity)
 class GameplayMode
 {
 public:
-    GameplayMode(sdl::Surface& screen, GameConfig& config, int& noiseLevel);
+    GameplayMode(UI& ui, sdl::Surface& screen, GameConfig& config, int& noiseLevel);
     std::optional<GameMode> frame(double frameTime);
 
 private:
@@ -84,18 +84,21 @@ private:
     LevelInfo levelInfo{};
     NPCs npcs{};
     Player player;
+    UI& ui;
     sdl::Surface& screen;
     sdl::Surface& gunHand;
     std::unique_ptr<raycaster::Caster> caster;
     std::optional<sdl::Surface> popup{};
 };
 
-GameplayMode::GameplayMode(sdl::Surface& screen,
+GameplayMode::GameplayMode(UI& ui,
+                           sdl::Surface& screen,
                            GameConfig& config,
                            int& noiseLevel) :
     noiseLevel(noiseLevel),
     config(config),
     player(config),
+    ui(ui),
     screen(screen),
     gunHand(sdl::textures.get("gfx/gun/gun1.bmp"))
 {
@@ -114,7 +117,6 @@ void GameplayMode::reload()
 
     npcs = generate_npcs((int*)level);
     InitAI((int*)level);
-    InitUI();
 
     player.switchLevel();
     generate_map((int*)level, (int)player.getPosition().x, (int)player.getPosition().y, 1);
@@ -183,14 +185,14 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
         if (auto textId = AI_Tick(&player, frameTime, flashlight) > 0)
         {
-            popup = messageWindow("", texts[textId], config);
+            popup = ui.messageWindow("", texts[textId], config);
             paused = true;
             return noStateChange;
         }
 
         if (sdl::keyPressed(SDLK_m))
         {
-            popup = makeWindow(556, 556, "Mapa", config);
+            popup = ui.makeWindow(556, 556, "Mapa", config);
             drawMap((int*) level, player).render(*popup);
             paused = true;
             return noStateChange;
@@ -222,9 +224,9 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
 Game::Game() :
     mainWindow((sdl::initialize(), sdl::make_main_window(config.sWidth, config.sHeight, config.fullScreen))),
-    screen(sdl::make_surface(renderWidth, renderHeight))
+    screen(sdl::make_surface(renderWidth, renderHeight)),
+    ui(mainWindow)
 {
-    InitUI();
     initializeStates();
 
     spdlog::debug("Game initialization complete");
@@ -259,8 +261,8 @@ std::optional<GameMode> Game::frameInitial()
     SDL_Rect noticeTarget{84, 210, 0, 0};
     SDL_Rect titleTarget{0, 60, 0, 0};
 
-    uiFontTitle.render(screen, titleTarget, "Techdemo");
-    uiFontNotice.render(screen, noticeTarget, "Prece enter key");
+    ui.fonts.title.render(screen, titleTarget, "Techdemo");
+    ui.fonts.notice.render(screen, noticeTarget, "Prece enter key");
 
     if (noiseLevel > 12)
     {
@@ -283,7 +285,7 @@ std::optional<GameMode> Game::frameInitial()
 void Game::entryGame()
 {
     spdlog::debug("Entering gameplay mode");
-    gameplay = std::make_unique<GameplayMode>(screen, config, noiseLevel);
+    gameplay = std::make_unique<GameplayMode>(ui, screen, config, noiseLevel);
 }
 
 void Game::entryGameOver()
