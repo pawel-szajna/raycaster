@@ -20,7 +20,7 @@ public:
     Surface(const Surface& other) = delete;
     Surface& operator= (const Surface& other) = delete;
 
-    ~Surface() { SDL_free(surface); }
+    ~Surface() { SDL_FreeSurface(surface); }
 
     Surface(Surface&& other) noexcept : surface(other.surface) { other.surface = nullptr; }
     Surface& operator=(Surface&& other) noexcept { std::swap(surface, other.surface); return *this; }
@@ -49,7 +49,7 @@ public:
     explicit Font(TTF_Font* source) : font(source) {}
     Font(const std::string& file, int size);
 
-    Font() = default; // TODO: "=delete" me when code is ready
+    Font() = delete;
     Font(const Font& other) = delete;
     Font& operator= (const Font& other) = delete;
 
