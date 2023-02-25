@@ -203,8 +203,8 @@ void Caster::renderWalls(const Position& position)
 {
     auto columns = std::ranges::views::iota(0, renderWidth);
     std::transform(std::execution::par,
-                   std::begin(columns),
-                   std::end(columns),
+                   std::cbegin(columns),
+                   std::cend(columns),
                    std::begin(buffer),
                    [&] (auto x)
                    {
@@ -303,16 +303,22 @@ void Caster::renderWalls(const Position& position)
 void Caster::renderSprites(const Position& position)
 {
     std::transform(sprites.begin(), sprites.end(), sprites.begin(),
-                   [&position](auto sprite) {
+                   [&position](auto& sprite) {
                        sprite.distance = sqr(position.x - sprite.x) + sqr(position.y - sprite.y);
                        return sprite;
                    });
 
-    std::sort(sprites.begin(), sprites.end(),
+    std::sort(std::execution::par,
+              sprites.begin(), sprites.end(),
               [](const auto& a, const auto& b) { return a.distance < b.distance; });
 
     for (const auto &sprite: sprites)
     {
+        if (sprite.distance > (fadeEnd * fadeEnd))
+        {
+            continue;
+        }
+
         auto invDet = 1.0 / (position.planeX * position.dirY - position.dirX * position.planeY);
 
         auto transX = invDet * (position.dirY * (sprite.x - position.x) - position.dirX * (sprite.y - position.y));
