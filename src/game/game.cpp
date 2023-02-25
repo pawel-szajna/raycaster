@@ -153,20 +153,9 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
     }
     caster->draw(screen);
 
-    if (popup.has_value())
+    if (sdl::keyPressed(SDLK_RETURN) and paused)
     {
-        auto [popupWidth, popupHeight] = popup->size();
-        auto [screenWidth, screenHeight] = screen.size();
-        SDL_Rect popupPosition{static_cast<int16_t>(screenWidth / 2 - popupWidth / 2),
-                               static_cast<int16_t>(screenHeight / 2 - popupHeight / 2),
-                               static_cast<uint16_t>(popupWidth),
-                               static_cast<uint16_t>(popupHeight)};
-        popup->render(screen, popupPosition);
-    }
-
-    if (sdl::keyPressed(SDLK_RETURN) and popup.has_value())
-    {
-        popup = std::nullopt;
+        ui.clear();
         paused = false;
     }
 
@@ -185,15 +174,17 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
         if (auto textId = AI_Tick(&player, frameTime, flashlight) > 0)
         {
-            popup = ui.messageWindow("", texts[textId], config);
+            ui.addMessageWindow("", texts[textId], config);
             paused = true;
             return noStateChange;
         }
 
         if (sdl::keyPressed(SDLK_m))
         {
-            popup = ui.makeWindow(556, 556, "Mapa", config);
-            drawMap((int*) level, player).render(*popup);
+            auto window = ui.makeWindow(556, 556, "Mapa", config);
+            SDL_Rect mapOffset{24, 32, 0, 0};
+            drawMap((int*) level, player).render(window, mapOffset);
+            ui.addObject(std::move(window));
             paused = true;
             return noStateChange;
         }
@@ -358,6 +349,7 @@ void Game::mainLoop()
 
         applyNoise();
         screen.draw(mainWindow);
+        ui.render();
         mainWindow.update();
 
         sdl::setTitle(std::format("{} ({} fps)", config.title, (int)(1 / frameTime)));
