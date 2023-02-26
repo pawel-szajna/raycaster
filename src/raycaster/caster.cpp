@@ -18,7 +18,7 @@ struct Sprite
     double y;
     int texture;
     double distance;
-    bool dynamic{false}; // TODO: remove, as this is probably a big performance hit
+    int dynamicId;
 };
 
 std::vector<Sprite> sprites;
@@ -113,17 +113,31 @@ Caster::Caster(Level& level) :
     loadTexture(10, "gfx/portal.raw");
 }
 
-void Caster::resetDynamicSprites()
+void Caster::removeSprite(int id)
 {
-    spdlog::debug("Reset dynamic sprites");
-    sprites.erase(std::remove_if(sprites.begin(), sprites.end(), [](const auto &sprite) { return sprite.dynamic; }),
+    spdlog::debug("Remove sprite {}", id);
+    sprites.erase(std::remove_if(sprites.begin(), sprites.end(), [id](const auto& sprite) { return sprite.dynamicId == id; }),
                   sprites.end());
 }
 
-void Caster::addDynamicSprite(double x, double y, int texture)
+int Caster::addSprite(double x, double y, int texture)
 {
     spdlog::debug("Add dynamic sprite @ {};{}", x, y);
-    sprites.push_back(Sprite{x, y, texture, 0, DYNAMIC});
+    sprites.push_back(Sprite{x, y, texture, 0, ++dynamicSpritesCounter});
+    return dynamicSpritesCounter;
+}
+
+void Caster::updateSprite(int id, double x, double y, int texture)
+{
+    auto sprite = std::find_if(sprites.begin(), sprites.end(), [id](const auto& sprite) { return sprite.dynamicId == id; });
+    if (sprite == sprites.end())
+    {
+        spdlog::warn("Trying to modify non-existing sprite {}", id);
+        return;
+    }
+    sprite->x = x;
+    sprite->y = y;
+    sprite->texture = texture;
 }
 
 void Caster::changeVisibility(double fullRange, double visibleRange)
@@ -299,7 +313,7 @@ void Caster::renderSprites(const Position& position)
 
     std::sort(std::execution::par,
               sprites.begin(), sprites.end(),
-              [](const auto& a, const auto& b) { return a.distance < b.distance; });
+              [](const auto& a, const auto& b) { return a.distance > b.distance; });
 
     for (const auto &sprite: sprites)
     {

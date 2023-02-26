@@ -41,7 +41,7 @@ Level::Level(const std::string& filename) : id(1)
 void Level::addItem(int x, int y, int num)
 {
     spdlog::debug("Adding new item #{} [{};{}]", num, x, y);
-    items.push_back(Item{x + 0.5, y + 0.5, 1, num});
+    items.push_back(Item{x + 0.5, y + 0.5, false, num});
 }
 
 int Level::at(int x, int y) const

@@ -26,8 +26,9 @@ public:
 
     void changeVisibility(double fullRange, double visibleRange);
 
-    void resetDynamicSprites();
-    void addDynamicSprite(double x, double y, int texture);
+    int addSprite(double x, double y, int texture);
+    void updateSprite(int id, double x, double y, int texture);
+    void removeSprite(int id);
 
 private:
     void fadePixel(uint32_t color, double distance, uint32_t& pixel) const;
@@ -44,6 +45,7 @@ private:
     std::array<std::array<uint32_t, renderHeight>, renderWidth> buffer{};
     std::array<double, renderWidth> zBuffer{};
     sdl::Surface worldView;
+    int dynamicSpritesCounter{};
 
 };
 }

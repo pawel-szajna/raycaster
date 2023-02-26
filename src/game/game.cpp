@@ -97,7 +97,7 @@ GameplayMode::GameplayMode(UI& ui,
     noiseLevel(noiseLevel),
     config(config),
     player(config),
-    ai(player),
+    ai(player, caster),
     ui(ui),
     screen(screen),
     gunHand(sdl::textures.get("gfx/gun/gun1.bmp"))
@@ -130,6 +130,7 @@ void GameplayMode::reload()
     player.currentLevel().addItem(27, 48, 3);
 
     caster = std::make_unique<raycaster::Caster>(player.currentLevel());
+    ai.refreshItems();
     switchFlashlight(false);
 
     player.reloadLevel = false;

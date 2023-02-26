@@ -51,8 +51,9 @@ struct Item
 {
     double x;
     double y;
-    int nottaken;
+    bool taken;
     int number;
+    int sprite;
 };
 
 using Items = std::vector<Item>;

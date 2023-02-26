@@ -31,9 +31,28 @@ int AIMap[levelSize][levelSize];
 int AISearchMap[levelSize][levelSize];
 int goOn;
 
-AI::AI(Player &player) :
-    player(player)
+AI::AI(Player &player,
+       std::unique_ptr<raycaster::Caster>& caster) :
+    player(player),
+    caster(caster)
 {
+}
+
+void AI::refreshItems()
+{
+    if (caster == nullptr)
+    {
+        spdlog::error("The raycaster must not be nullptr now");
+        return;
+    }
+
+    for (auto& item : player.currentLevel().items)
+    {
+        if (not item.taken)
+        {
+            item.sprite = caster->addSprite(item. x, item. y, item.number + 96);
+        }
+    }
 }
 
 void InitAI(int* level)
@@ -183,7 +202,7 @@ int AI::tick(double frameTime, bool flashlight)
             }
         }
 
-        auto npcTexture = npc.alive ? (48 + npc.firstTexture + 8 * npc.currentTexture) : 88 + npc.firstTexture;
+        // auto npcTexture = npc.alive ? (48 + npc.firstTexture + 8 * npc.currentTexture) : 88 + npc.firstTexture;
         // AddDynamicSprite(npc.x, npc.y, npcTexture); TODO
     }
 
@@ -191,7 +210,7 @@ int AI::tick(double frameTime, bool flashlight)
     {
         if ((int)position.x == (int)item.x and
             (int)position.y == (int)item.y and
-            item.nottaken)
+            not item.taken)
         {
             switch (item.number)
             {
@@ -212,10 +231,14 @@ int AI::tick(double frameTime, bool flashlight)
             }
 
             popup = item.number + 5;
-            item.nottaken = 0;
+            item.taken = true;
+            if (item.sprite > 0)
+            {
+                caster->removeSprite(item.sprite);
+            }
         }
 
-        if (item.nottaken)
+        if (not item.taken)
         {
             // AddDynamicSprite(item.x, item.y, 96 + item.number); TODO
         }
