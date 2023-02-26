@@ -42,6 +42,9 @@ public:
     int blink();
 
 private:
+
+    void markVisited(int x, int y);
+
     Position position;
     PlayerLevels levels{};
     PlayerLevels::iterator current;

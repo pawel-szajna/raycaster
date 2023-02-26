@@ -79,39 +79,29 @@ Player::Player(const GameConfig& config) :
 
 {}
 
-void MarkVisitedSub(std::array<bool, 4096>& visited, int x, int y)
+void Player::markVisited(int x, int y)
 {
-    if (x < 0 or  y < 0 or x >= levelSize or y >= levelSize)
+    auto& visited = currentLevel().visited;
+    auto markWithCheck = [&visited](int x, int y) { if (x >= 0 and y >= 0 and x < levelSize and y < levelSize) { visited[at(x, y)] = true; }};
+
+    if (visited[at(x, y)])
     {
         return;
     }
 
-    visited[levelSize * x + y] = 1;
-}
-
-void MarkVisited(Player* player, int x, int y)
-{
-    auto& visited = player->currentLevel().visited;
-
-    if (visited[levelSize * x + y])
-    {
-        return;
-    }
-
-    visited[levelSize * x + y] = 2;
-
-    MarkVisitedSub(visited, x - 1, y - 1);
-    MarkVisitedSub(visited, x - 1, y);
-    MarkVisitedSub(visited, x - 1, y + 1);
-    MarkVisitedSub(visited, x, y + 1);
-    MarkVisitedSub(visited, x, y - 1);
-    MarkVisitedSub(visited, x + 1, y + 1);
-    MarkVisitedSub(visited, x + 1, y);
-    MarkVisitedSub(visited, x + 1, y - 1);
-    MarkVisitedSub(visited, x, y - 2);
-    MarkVisitedSub(visited, x, y + 2);
-    MarkVisitedSub(visited, x - 2, y);
-    MarkVisitedSub(visited, x + 2, y);
+    markWithCheck(x - 2, y);
+    markWithCheck(x - 1, y - 1);
+    markWithCheck(x - 1, y);
+    markWithCheck(x - 1, y + 1);
+    markWithCheck(x, y - 2);
+    markWithCheck(x, y - 1);
+    markWithCheck(x, y);
+    markWithCheck(x, y + 1);
+    markWithCheck(x, y + 2);
+    markWithCheck(x + 1, y - 1);
+    markWithCheck(x + 1, y);
+    markWithCheck(x + 1, y + 1);
+    markWithCheck(x + 2, y);
 }
 
 void Player::switchLevel()
@@ -126,16 +116,8 @@ void Player::switchLevel()
 
 void Player::handleMovement(uint8_t* keys, double frameTime)
 {
-    double movementSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
-    double rotationSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
-    int collision;
-
-    auto& posX = position.x;
-    auto& posY = position.y;
-    auto& dirX = position.dirX;
-    auto& dirY = position.dirY;
-    auto& planeX = position.planeX;
-    auto& planeY = position.planeY;
+    double movementSpeed = frameTime * 1.6 * speedFactor;
+    double rotationSpeed = frameTime * 1.2 * speedFactor;
 
     auto& level = currentLevel().map;
 
@@ -152,24 +134,24 @@ void Player::handleMovement(uint8_t* keys, double frameTime)
 
     if (walkFactor != 0)
     {
-        auto differenceX = movementSpeed * (walkFactor * dirX + strafeFactor * sin(atan2(dirY, dirX)));
-        auto differenceY = movementSpeed * (walkFactor * dirY - strafeFactor * cos(atan2(dirY, dirX)));
+        auto differenceX = movementSpeed * (walkFactor * position.dirX + strafeFactor * sin(atan2(position.dirY, position.dirX)));
+        auto differenceY = movementSpeed * (walkFactor * position.dirY - strafeFactor * cos(atan2(position.dirY, position.dirX)));
 
         if (walkable(level, position.x + differenceX * 3, position.y)) position.x += differenceX;
         if (walkable(level, position.x, position.y + differenceY * 3)) position.y += differenceY;
 
-        MarkVisited(this, (int)(position.x), (int)(position.y));
+        markVisited(position.x, position.y);
     }
 
     if (rotationFactor != 0)
     {
-        auto oldDir = dirX;
-        dirX = dirX * cos(rotationSpeed * rotationFactor) - dirY * sin(rotationSpeed * rotationFactor);
-        dirY = oldDir * sin(rotationSpeed * rotationFactor) + dirY * cos(rotationSpeed * rotationFactor);
+        auto oldDir = position.dirX;
+        position.dirX = position.dirX * cos(rotationSpeed * rotationFactor) - position.dirY * sin(rotationSpeed * rotationFactor);
+        position.dirY = oldDir * sin(rotationSpeed * rotationFactor) + position.dirY * cos(rotationSpeed * rotationFactor);
 
-        oldDir = planeX;
-        planeX = planeX * cos(rotationSpeed * rotationFactor) - planeY * sin(rotationSpeed * rotationFactor);
-        planeY = oldDir * sin(rotationSpeed * rotationFactor) + planeY * cos(rotationSpeed * rotationFactor);
+        oldDir = position.planeX;
+        position.planeX = position.planeX * cos(rotationSpeed * rotationFactor) - position.planeY * sin(rotationSpeed * rotationFactor);
+        position.planeY = oldDir * sin(rotationSpeed * rotationFactor) + position.planeY * cos(rotationSpeed * rotationFactor);
     }
 
 //    if(level[(int)posX * levelSize + (int)posY] % 16 == 6)
