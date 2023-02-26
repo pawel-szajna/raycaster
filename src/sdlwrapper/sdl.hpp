@@ -74,6 +74,7 @@ class TextureCache
 {
 public:
     Surface& get(const std::string& path);
+    void clear() { textures.clear(); }
 
 private:
     std::unordered_map<std::string, Surface> textures{};

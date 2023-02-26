@@ -113,13 +113,17 @@ void GameplayMode::reload()
 {
     spdlog::debug("Level reload triggered");
 
-
     player.switchLevel();
+    npcs = player.currentLevel().npcs;
+
     auto& level = player.currentLevel();
     // InitAI(level.map);
-    npcs = generate_npcs(level.map);
-    generate_map(level.map, (int)player.getPosition().x, (int)player.getPosition().y, 1);
-    npcs = player.currentLevel().npcs;
+
+    auto generator = Generator(level.map);
+    constexpr auto enableBonusRoom{true};
+    generator.fillMap((int)player.getPosition().x, (int)player.getPosition().y, enableBonusRoom);
+    // npcs = generator.generateNpcs();
+
     ResetAI(npcs);
 
     player.currentLevel().addItem(27, 46, 0);

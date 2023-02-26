@@ -2,87 +2,161 @@
 
 #include <spdlog/spdlog.h>
 
-void clear_level(Level::TileArray& level)
+namespace
 {
-    for(int i = 0; i < levelSize; ++i)
-        for(int j = 0; j < levelSize; ++j)
-            level[levelSize * i + j] = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
+constexpr auto EMPTY{0};
+constexpr auto WALL{1};
+constexpr auto PILLAR{2};
+
+constexpr auto xy(int x, int y) { return levelSize * x + y; }
+
+struct Neighbour
+{
+    int x;
+    int y;
+    int connectionX;
+    int connectionY;
+};
 }
 
-void wall_fix(Level::TileArray& level)
+Generator::Generator(Level::TileArray &level) :
+    level(level)
+{}
+
+int& Generator::at(int x, int y)
 {
-    int tex1, tex2, tex3, tex4;
+    return level[xy(x, y)];
+}
 
-    for(int i = 0; i < 64; ++i) for(int j = 0; j < 64; ++j) if(LEV(i,j)%16 == 1)
+bool Generator::wallAt(int x, int y)
+{
+    return at(x, y) % 16 == 1;
+}
+
+void Generator::fillMap(int playerX, int playerY, bool bonusRoom)
+{
+    spdlog::info("Generating level structure");
+
+    clearLevel();
+    dig(playerX, playerY, playerX, playerY, false);
+    at(playerX, playerY) = 0;
+
+    for (int i = 0; i < 12; ++i) spawnRandomRoom();
+    for (int i = 0; i < 4; ++i) spawnCorridor();
+    if (bonusRoom) spawnBonusRoom();
+
+    fixWallTextures();
+}
+
+void Generator::clearLevel()
+{
+    auto empty = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
+    std::fill(level.begin(), level.end(), empty);
+}
+
+void Generator::dig(int currentX, int currentY, int connectionX, int connectionY, bool fill)
+{
+    std::vector<Neighbour> neighbours{};
+    neighbours.reserve(4);
+
+    if (at(currentX, currentY) == EMPTY)
     {
-        if((i == 0 && j ==0) || (i == 0 && j == 63) || (i == 63 && j == 0) || (i == 63 && j == 63)) continue;
+        return;
+    }
 
-        tex1 = tex2 = tex3 = tex4 = 1;
+    if (fill)
+    {
+        at(currentX, currentY) = WALL;
+        return;
+    }
 
-        /* dolna sciana */
-        if(i != 63 && j != 0 && j != 63)
-        {
-            if(LEV(i+1,j-1)%16 == 1 || LEV(i,j-1)%16 != 1)
-            {
-                if(LEV(i+1,j+1)%16 == 1 || LEV(i,j+1)%16 != 1) tex1 = 4;
-                else tex1 = 5;
-            }
-            else if(LEV(i+1,j+1)%16 == 1 || LEV(i,j+1)%16 != 1) tex1 = 3;
-        }
+    at(currentX, currentY) = EMPTY;
+    at(connectionX, connectionY) = EMPTY;
 
-        /* gorna sciana */
-        if(i != 0 && j != 0 && j != 63)
-        {
-            if(LEV(i-1,j-1)%16 == 1 || LEV(i,j-1)%16 != 1)
-            {
-                if(LEV(i-1,j+1)%16 == 1 || LEV(i,j+1)%16 != 1) tex3 = 4;
-                else tex3 = 3;
-            }
-            else if(LEV(i-1,j+1)%16 == 1 || LEV(i,j+1)%16 != 1) tex3 = 5;
-        }
+    if (currentX > 1) neighbours.push_back({currentX - 2, currentY, currentX - 1, currentY});
+    if (currentY > 1) neighbours.push_back({currentX, currentY - 2, currentX, currentY - 1});
+    if (currentX < levelSize - 3) neighbours.push_back({currentX + 2, currentY, currentX + 1, currentY});
+    if (currentY < levelSize - 3) neighbours.push_back({currentX, currentY + 2, currentX, currentY + 1});
 
-        /* prawa sciana */
-        if(j != 63 && i != 0 && i != 63)
-        {
-            if(LEV(i-1,j+1)%16 == 1 || LEV(i-1,j)%16 != 1)
-            {
-                if(LEV(i+1,j+1)%16 == 1 || LEV(i+1,j)%16 != 1) tex2 = 4;
-                else tex2 = 3;
-            }
-            else if(LEV(i+1,j+1)%16 == 1 || LEV(i+1,j)%16 != 1) tex2 = 5;
-        }
-
-        /* lewa ściana */
-        if(j != 0 && i != 0 && i != 63)
-        {
-            if(LEV(i-1,j-1)%16 == 1 || LEV(i-1,j)%16 != 1)
-            {
-                if(LEV(i+1,j-1)%16 == 1 || LEV(i+1,j)%16 != 1) tex4 = 4;
-                else tex4 = 5;
-            }
-            else if(LEV(i+1,j-1)%16 == 1 || LEV(i+1,j)%16 != 1) tex4 = 3;
-        }
-
-        tex1 <<= 4;
-        tex2 <<= 8;
-        tex3 <<= 12;
-        tex4 <<= 16;
-
-        LEV(i,j) = 1 + tex1 + tex2 + tex3 + tex4;
+    std::shuffle(neighbours.begin(), neighbours.end(), rng);
+    for (const auto& neighbour : neighbours)
+    {
+        dig(neighbour.x, neighbour.y,
+            neighbour.connectionX, neighbour.connectionY,
+            neighbours.size() >= 3 and ((rand() % 6) - 4) > 0);
     }
 }
 
-NPCs generate_npcs(Level::TileArray& level)
+void Generator::fixWallTextures()
+{
+    constexpr static auto LIMIT{levelSize - 1};
+    constexpr static auto noBricks{1};
+    constexpr static auto bricksLeft{5};
+    constexpr static auto bricksRight{3};
+    constexpr static auto bricksBoth{4};
+
+    for (int x = 0; x < levelSize; ++x) for(int y = 0; y < levelSize; ++y) if (at(x, y) % 16 == 1)
+    {
+        int south{noBricks}, east{noBricks}, north{noBricks}, west{noBricks};
+
+        if (x != LIMIT and y != 0 and y != LIMIT)
+        {
+            if (wallAt(x + 1, y - 1) or not wallAt(x, y - 1))
+            {
+                if (wallAt(x + 1, y + 1) or not wallAt(x, y + 1)) south = bricksBoth;
+                else south = bricksLeft;
+            }
+            else if (wallAt(x + 1, y + 1) or not wallAt(x, y + 1)) south = bricksRight;
+        }
+
+        if (x != 0 and y != 0 and y != LIMIT)
+        {
+            if (wallAt(x - 1, y - 1) or not wallAt(x, y - 1))
+            {
+                if (wallAt(x - 1, y + 1) or not wallAt(x, y + 1)) north = bricksBoth;
+                else north = bricksRight;
+            }
+            else if (wallAt(x - 1, y + 1) or not wallAt(x, y + 1)) north = bricksLeft;
+        }
+
+        if (y != LIMIT and x != 0 and x != LIMIT)
+        {
+            if (wallAt(x - 1, y + 1) or not wallAt(x - 1, y))
+            {
+                if (wallAt(x + 1, y + 1) or not wallAt(x + 1, y)) east = bricksBoth;
+                else east = bricksRight;
+            }
+            else if (wallAt(x + 1, y + 1) or not wallAt(x + 1, y)) east = bricksLeft;
+        }
+
+        if (y != 0 and x != 0 and x != LIMIT)
+        {
+            if (wallAt(x - 1, y - 1) or not wallAt(x - 1, y))
+            {
+                if (wallAt(x + 1, y - 1) or not wallAt(x + 1, y)) west = bricksBoth;
+                else west = bricksLeft;
+            }
+            else if (wallAt(x + 1, y - 1) or not wallAt(x + 1, y)) west = bricksRight;
+        }
+
+        at(x, y) = 1 + (south << 4) + (east << 8) + (north << 12) + (west << 16);
+    }
+}
+
+NPCs Generator::generateNpcs()
 {
     NPCs npcs{};
+
     int dx, dy;
     int npcsToGenerate = levelSize / 4;
+
+    spdlog::debug("Generating {} NPCs", npcsToGenerate);
 
     while (npcsToGenerate > 0)
     {
         dx = rand() % levelSize;
         dy = rand() % levelSize;
-        if(!LEV(dx,dy))
+        if (at(dx, dy) % 16 == 0)
         {
             --npcsToGenerate;
             AddNPC(npcs, dx, dy, 0);
@@ -92,139 +166,63 @@ NPCs generate_npcs(Level::TileArray& level)
     return npcs;
 }
 
-void bonus_room(Level::TileArray& level)
+void Generator::spawnBonusRoom()
 {
-    int x;
+    for (int x = 43; x <= 50; ++x) at(27, x) = EMPTY;
+    for (int x = 46; x <= 48; ++x) at(26, x) = at(28, x) = PILLAR;
+    for (int x = 45; x <= 49; ++x) at(25, x) = at(29, x) = WALL;
 
-    for(x = 43; x <= 50; ++x) LEV(27, x) = 0;
-    for(x = 46; x <= 48; ++x) LEV(26, x) = LEV(28, x) = 2;
-    for(x = 45; x <= 49; ++x) LEV(25, x) = LEV(29, x) = 1;
-    LEV(26, 45) = LEV(28, 45) = LEV(26, 49) = LEV(28, 49) = LEV(26, 42) = LEV(26, 43) = LEV(26, 44) = LEV(28, 42) = LEV(28, 43) = LEV(28, 44) = LEV(27, 42) = 1;
+    at(26, 45) = at(28, 45) = at(26, 49) = at(28, 49) = at(26, 42) = at(26, 43)
+               = at(26, 44) = at(28, 42) = at(28, 43) = at(28, 44) = at(27, 42)
+               = WALL;
 }
 
-void generate_map(Level::TileArray& level, int pX, int pY, int bonusroom)
+void Generator::spawnRandomRoom()
 {
-    spdlog::info("Generating level structure");
-    clear_level(level);
-    depth_first(level, pX, pY, -1, -1, -1, -1, -1);
-    for(int i = 0; i < 12; ++i) random_room(level);
-    for(int i = 0; i < 4; ++i) corridor(level);
-    LEV(pX, pY) = 0;
-    if(bonusroom) bonus_room(level);
-    wall_fix(level);
-    level[levelSize * levelSize - 1] = 2;
-    /*drawmap(levelId, pX, pY);*/
-}
+    int width = (rand() % 2) + 4;
+    int height = (rand() % 2) + 4;
+    int roomX = (rand() % (levelSize - width - 3)) + 1;
+    int roomY = (rand() % (levelSize - height - 3)) + 1;
 
-void depth_first(Level::TileArray& level, int a, int b, int c, int d, int e, int f, int g)
-{
-    int sasiedzi[4][4], ilosc_sasiadow, kolejnosc[4];
-    if(!level[levelSize * a + b]) return;
+    width += roomX;
+    height += roomY;
 
-    if(g > 0)
+    for(int x = roomX; x < width; ++x)
     {
-        level[levelSize * a + b] = 1;
-        return;
-    }
-
-    if(c>-1) level[levelSize * c + d] = 0;
-
-    level[levelSize * a + b] = 0;
-
-    ilosc_sasiadow = 0;
-
-    if(a > 1)
-    {
-        sasiedzi[ilosc_sasiadow][0] = a - 2;
-        sasiedzi[ilosc_sasiadow][1] = b;
-        sasiedzi[ilosc_sasiadow][2] = a - 1;
-        sasiedzi[ilosc_sasiadow][3] = b;
-        ++ilosc_sasiadow;
-    }
-
-    if(b > 1)
-    {
-        sasiedzi[ilosc_sasiadow][0] = a;
-        sasiedzi[ilosc_sasiadow][1] = b - 2;
-        sasiedzi[ilosc_sasiadow][2] = a;
-        sasiedzi[ilosc_sasiadow][3] = b - 1;
-        ++ilosc_sasiadow;
-    }
-
-    if(a < levelSize - 3)
-    {
-        sasiedzi[ilosc_sasiadow][0] = a + 2;
-        sasiedzi[ilosc_sasiadow][1] = b;
-        sasiedzi[ilosc_sasiadow][2] = a + 1;
-        sasiedzi[ilosc_sasiadow][3] = b;
-        ++ilosc_sasiadow;
-    }
-
-    if(b < levelSize - 3)
-    {
-        sasiedzi[ilosc_sasiadow][0] = a;
-        sasiedzi[ilosc_sasiadow][1] = b + 2;
-        sasiedzi[ilosc_sasiadow][2] = a;
-        sasiedzi[ilosc_sasiadow][3] = b + 1;
-        ++ilosc_sasiadow;
-    }
-
-    kolejnosc[0] = 0;
-    kolejnosc[1] = 1;
-    kolejnosc[2] = 2;
-    kolejnosc[3] = 3;
-
-    for(int i = ilosc_sasiadow - 1; i >= 1; --i)
-    {
-        if(rand()%2)
+        for(int y = roomY; y < height; ++y)
         {
-            int tmp = kolejnosc[i];
-            kolejnosc[i] = kolejnosc[0];
-            kolejnosc[0] = tmp;
+            at(x, y) = EMPTY;
+        }
+    }
+}
+
+void Generator::spawnCorridor()
+{
+    int width = RND(5, 7);
+    int length = RND(4, levelSize / 5);
+    int startX = RND(3, levelSize - length - 3);
+    int startY = RND(2, levelSize - 6);
+    int endX = startX + length;
+    int endY = startY + width;
+
+    bool rotate = rand() % 2;
+    if (rotate)
+    {
+        std::swap(startX, startY);
+        std::swap(endX, endY);
+    }
+
+    for (int x = startX; x < endX; ++x)
+    {
+        for (int y = startY; y < endY; ++y)
+        {
+            at(x, y) = EMPTY;
         }
     }
 
-    for(int k = 0; k < ilosc_sasiadow; ++k)
+    for (int x = startX + 1; x < endX; x += 2) // Big pillars
     {
-        depth_first(level, sasiedzi[kolejnosc[k]][0], sasiedzi[kolejnosc[k]][1], sasiedzi[kolejnosc[k]][2], sasiedzi[kolejnosc[k]][3], a, b, (ilosc_sasiadow >= 3) ? (rand() % 6) - 4 : -1);
-    }
-}
-
-void random_room(Level::TileArray& level)
-{
-    int x, y;
-    int width = (rand() % 2) + 4;
-    int height = (rand() % 2) + 4;
-    int rx = (rand() % (levelSize - width - 3)) + 1;
-    int ry = (rand() % (levelSize - height - 3)) + 1;
-
-    width += rx;
-    height += ry;
-
-    for(x = rx; x < width; ++x) for(y = ry; y < height; ++y) LEV(x,y) = 0;
-}
-
-void corridor(Level::TileArray& level)
-{
-    int orientacja = rand() % 2;
-    if(orientacja)
-    {
-        int dlugosc = RND(4, levelSize / 5);
-        int x1 = RND(3, levelSize - dlugosc - 3);
-        int y1 = RND(2, levelSize - 6);
-        int x2 = x1 + dlugosc;
-        int y2 = y1 + 6;
-        for(int x = x1; x < x2; ++x) for(int y = y1; y < y2; ++y) LEV(x, y) = 0;
-        for(int x = x1 + 1; x < x2; x += 2) { LEV(x, y1 + 1) = 1; LEV(x, y2 - 2) = 1; }
-    }
-    else
-    {
-        int dlugosc = RND(4, levelSize / 5);
-        int x1 = RND(3, levelSize - dlugosc - 3);
-        int y1 = RND(2, levelSize - 6);
-        int x2 = x1 + dlugosc;
-        int y2 = y1 + 6;
-        for(int x = x1; x < x2; ++x) for(int y = y1; y < y2; ++y) LEV(y, x) = 0;
-        for(int x = x1 + 1; x < x2; x += 2) { LEV(y1 + 1, x) = 1; LEV(y2 - 2, x) = 1; }
+        at(x, startY + 1) = WALL;
+        at(x, endY - 2) = WALL;
     }
 }

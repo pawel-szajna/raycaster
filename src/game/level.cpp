@@ -8,6 +8,8 @@
 #include "player.hpp"
 #include "sdlwrapper/sdl.hpp"
 
+constexpr auto enableMapHack{true};
+
 Level::Level(const std::string& filename) : id(1)
 {
     spdlog::info("Loading map {}...", filename);
@@ -25,6 +27,15 @@ Level::Level(const std::string& filename) : id(1)
 //        AddNPC(npcs, dx, dy, dz);
 //    }
     fclose(data);
+
+    blocks.reserve(levelSize * levelSize);
+    for (int x = 0; x < levelSize; ++x)
+    {
+        for (int y = 0; y < levelSize; ++y)
+        {
+            blocks.push_back(BlockInfo(x, y, map));
+        }
+    }
 }
 
 void Level::addItem(int x, int y, int num)
@@ -66,6 +77,11 @@ std::string playerArrow(double angle)
 
 bool Level::isKnownWall(int x, int y)
 {
+    if (enableMapHack)
+    {
+        return map[levelSize * x + y] % 16 == 1;
+    }
+
     if (x < 0 or y < 0 or x >= levelSize or y >= levelSize)
     {
         return false;
@@ -99,7 +115,7 @@ sdl::Surface Level::drawMap(const Player& player)
         {
             texturePath = playerArrow(atan2(position.dirY, position.dirX) + 3.1415);
         }
-        else if (visited[levelSize * x + y])
+        else if (visited[levelSize * x + y] or enableMapHack)
         {
             switch((map[levelSize * x + y]) % 16)
             {
@@ -114,7 +130,7 @@ sdl::Surface Level::drawMap(const Player& player)
             }
         }
 
-        sdl::textures.get(texturePath).render(target, {static_cast<Sint16>(x * 8), static_cast<Sint16>(y * 8), 8, 8}, {0, 0, 8, 8});
+        sdl::textures.get(texturePath).render(target, {static_cast<Sint16>(y * 8), static_cast<Sint16>(x * 8), 8, 8}, {0, 0, 8, 8});
     }
 
     return target;

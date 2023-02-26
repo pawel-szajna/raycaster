@@ -112,6 +112,7 @@ void initialize()
 void teardown()
 {
     spdlog::debug("Quitting SDL");
+    textures.clear();
     SDL_Quit();
 }
 

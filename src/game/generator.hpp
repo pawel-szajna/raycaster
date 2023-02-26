@@ -1,17 +1,33 @@
-#ifndef _GENERATOR_H_
-#define _GENERATOR_H_
-
-#include <math.h>
+#pragma once
 
 #include "level.hpp"
 #include "ai.hpp"
 
-void clear_level(Level::TileArray& level);
-void depth_first(Level::TileArray& level, int a, int b, int c, int d, int e, int f, int g);
-void random_room(Level::TileArray& level);
-void drawmap(Level::TileArray& level, int pX, int pY);
-void corridor(Level::TileArray& level);
-void generate_map(Level::TileArray& level, int pX, int pY, int bonusroom);
-NPCs generate_npcs(Level::TileArray& level);
+#include <random>
 
-#endif
+class Generator
+{
+public:
+    explicit Generator(Level::TileArray& level);
+
+    void fillMap(int playerX, int playerY, bool bonusRoom);
+    NPCs generateNpcs();
+
+private:
+    int& at(int x, int y);
+    bool wallAt(int x, int y);
+
+    void clearLevel();
+    void fixWallTextures();
+
+    void spawnBonusRoom();
+    void spawnCorridor();
+    void spawnRandomRoom();
+
+    void dig(int currentX, int currentY, int connectionX, int connectionY, bool fill);
+
+    Level::TileArray& level;
+
+    std::random_device rd;
+    std::mt19937 rng{rd()};
+};
