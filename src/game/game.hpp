@@ -4,6 +4,7 @@
 #include "player.hpp"
 #include "sdlwrapper/sdl.hpp"
 #include "ui.hpp"
+#include "scripting.hpp"
 
 #include <functional>
 #include <memory>
@@ -56,7 +57,7 @@ private:
     double stateStartTime{};
 
     std::unordered_map<GameMode, GameState> states;
-    std::unique_ptr<GameplayMode> gameplay{nullptr};
+    std::unique_ptr<GameplayMode> gameplay;
 
     UI ui;
 };

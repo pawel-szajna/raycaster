@@ -50,8 +50,10 @@ add_library(
     src/game/generator.cpp
     src/game/level.cpp
     src/game/player.cpp
+    src/game/scripting.cpp
     src/game/ui.cpp
     src/game/game.cpp
+    src/game/gameplay.cpp
 )
 
 target_include_directories(
@@ -72,6 +74,8 @@ target_compile_options(sprig PUBLIC -Wno-narrowing -Wno-misleading-indentation)
 include_directories(
     src
     sprig/source
+    /usr/include/lua5.3
+    sol2/include
 )
 
 add_executable(
@@ -96,4 +100,5 @@ target_link_libraries(
     tbb
     sprig
     spdlog::spdlog
+    lua5.3
 )

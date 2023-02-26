@@ -2,6 +2,7 @@
 
 #include "raycaster/caster.hpp"
 #include "player.hpp"
+#include "scripting.hpp"
 
 #include <cstdio>
 #include <cmath>
@@ -161,7 +162,7 @@ bool AI::killNpc(double x, double y)
     return true;
 }
 
-int AI::tick(double frameTime, bool flashlight)
+int AI::tick(double frameTime, bool flashlight, Scripting& scripting)
 {
     double distance, target;
     int popup{};
@@ -215,6 +216,12 @@ int AI::tick(double frameTime, bool flashlight)
             (int)position.y == (int)item.y and
             not item.taken)
         {
+            if (not item.script.empty())
+            {
+                scripting.runCallback(item.script);
+                continue;
+            }
+
             switch (item.number)
             {
             case 0:
@@ -239,11 +246,6 @@ int AI::tick(double frameTime, bool flashlight)
             {
                 caster->removeSprite(item.sprite);
             }
-        }
-
-        if (not item.taken)
-        {
-            // AddDynamicSprite(item.x, item.y, 96 + item.number); TODO
         }
     }
 

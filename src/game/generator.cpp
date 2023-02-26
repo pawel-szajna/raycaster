@@ -160,7 +160,7 @@ NPCs Generator::generateNpcs(AI& ai)
         if (field == EMPTY)
         {
             --npcsToGenerate;
-            spdlog::debug("Adding new NPC [{:1.0f};{:1.0f}]", x, y);
+            spdlog::debug("Adding new NPC [{};{}]", x, y);
             level.npcs.push_back(NPC{.x = x + 0.5,
                                      .y = y + 0.5,
                                      .distance = 0,

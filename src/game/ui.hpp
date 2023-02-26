@@ -10,10 +10,10 @@ class UI
 public:
     UI(sdl::Surface& target);
 
-    void addMessageWindow(const std::string& title, const std::string& message, const GameConfig& cfg);
+    void addMessageWindow(const std::string& title, const std::string& message);
     void addObject(sdl::Surface&& surface);
 
-    sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title, const GameConfig& cfg);
+    sdl::Surface makeWindow(int w, int h, const std::optional<std::string>& title);
 
     void clear();
     void render();

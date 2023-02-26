@@ -17,11 +17,11 @@ UI::UI(sdl::Surface &target) :
     spdlog::info("UI initialized");
 }
 
-void UI::addMessageWindow(const std::string& title, const std::string& message, const GameConfig& cfg)
+void UI::addMessageWindow(const std::string& title, const std::string& message)
 {
     SDL_Rect r = { 24, 52, 0, 0 }, p = { 24, 24, 0, 0 };
 
-    auto window = makeWindow(480, 128, std::nullopt, cfg);
+    auto window = makeWindow(480, 128, std::nullopt);
 
     fonts.main.render(window, r, message);
     fonts.header.render(window, p, title);
@@ -51,7 +51,7 @@ void UI::clear()
     objects.clear();
 }
 
-sdl::Surface UI::makeWindow(int width, int height, const std::optional<std::string>& title, const GameConfig& cfg)
+sdl::Surface UI::makeWindow(int width, int height, const std::optional<std::string>& title)
 {
     SDL_Rect box8px{0, 0, 8, 8};
     Sint16 x, y, w = (Sint16)width, h = (Sint16)height;

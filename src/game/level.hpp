@@ -58,7 +58,7 @@ public:
     explicit Level(const std::string& filename);
 
     int at(int x, int y) const;
-    void addItem(int x, int y, int id);
+    void addItem(int x, int y, int id, const std::string& callback);
     BlockType blockType(int x, int y) const;
     sdl::Surface drawMap(const Player& player);
 

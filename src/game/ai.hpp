@@ -6,6 +6,7 @@
 #include <memory>
 
 class Player;
+class Scripting;
 class Level;
 
 namespace raycaster
@@ -24,7 +25,7 @@ public:
 
     double distanceToNearestNpc();
 
-    int tick(double frameTime, bool flashlight);
+    int tick(double frameTime, bool flashlight, Scripting& scripting);
 
 private:
     Player& player;

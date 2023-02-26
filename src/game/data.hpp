@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
+#include <string>
 
 constexpr auto speedFactor{1.1};
 constexpr auto levelSize{64};
@@ -60,6 +61,7 @@ struct Item
     bool taken;
     int number;
     int sprite;
+    std::string script{};
 };
 
 using Items = std::vector<Item>;
