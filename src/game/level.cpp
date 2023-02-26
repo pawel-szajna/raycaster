@@ -15,7 +15,7 @@ Level::Level(const std::string& filename) : id(1)
     auto data = fopen(filename.c_str(), "rb");
     assert(data);
     fread((char*)(&li), sizeof(char), sizeof(LevelInfo) / sizeof(char), data);
-    // fread((char*)(level), sizeof(char), (levelSize * levelSize * sizeof(int)) / sizeof(char), data);
+    // fread((char*)(map), sizeof(char), (levelSize * levelSize * sizeof(int)) / sizeof(char), data);
 //    npcs.clear();
 //    for(auto x = 0; x < li->npcCount; ++x)
 //    {
@@ -33,9 +33,19 @@ void Level::addItem(int x, int y, int num)
     items.push_back(Item{x + 0.5, y + 0.5, 1, num});
 }
 
-int BlockType(int* level, int x, int y)
+int Level::at(int x, int y) const
 {
-    return level[levelSize * x + y] % 16;
+    return map.at(x * levelSize + y);
+}
+
+BlockType Level::blockType(int x, int y) const
+{
+    switch (at(x, y) % 16)
+    {
+        case 1:  return BlockType::Wall;
+        case 2:  return BlockType::Pillar;
+        default: return BlockType::None;
+    }
 }
 
 namespace
@@ -54,36 +64,35 @@ std::string playerArrow(double angle)
 }
 }
 
-bool isKnownWall(int* level, std::array<bool, 4096>& visited, int x, int y)
+bool Level::isKnownWall(int x, int y)
 {
     if (x < 0 or y < 0 or x >= levelSize or y >= levelSize)
     {
         return false;
     }
 
-    return not visited[levelSize * x + y] and (level[levelSize * x + y] % 16) == 1;
+    return not visited[levelSize * x + y] and (map[levelSize * x + y] % 16) == 1;
 }
 
-int wallType(int* level, std::array<bool, 4096>& visited, int x, int y)
+int Level::wallType(int x, int y)
 {
     int wallType{1};
 
-    if (isKnownWall(level, visited, x - 1, y)) wallType += 1;
-    if (isKnownWall(level, visited, x, y - 1)) wallType += 2;
-    if (isKnownWall(level, visited, x + 1, y)) wallType += 4;
-    if (isKnownWall(level, visited, x, y + 1)) wallType += 8;
+    if (isKnownWall(x - 1, y)) wallType += 1;
+    if (isKnownWall(x, y - 1)) wallType += 2;
+    if (isKnownWall(x + 1, y)) wallType += 4;
+    if (isKnownWall(x, y + 1)) wallType += 8;
 
     return wallType;
 }
 
-sdl::Surface drawMap(int* level, Player& player)
+sdl::Surface Level::drawMap(const Player& player)
 {
-    auto& visited = player.currentLevel().visited;
     const auto& position = player.getPosition();
 
-    auto map = sdl::make_surface(levelSize * 8, levelSize * 8);
+    auto target = sdl::make_surface(levelSize * 8, levelSize * 8);
 
-    for(int x = 0; x < levelSize; ++x) for(int y = 0; y < levelSize; ++y)
+    for (int x = 0; x < levelSize; ++x) for (int y = 0; y < levelSize; ++y)
     {
         std::string texturePath{"gfx/map20.bmp"};
         if ((int)position.x == x and (int)position.y == y)
@@ -92,10 +101,10 @@ sdl::Surface drawMap(int* level, Player& player)
         }
         else if (visited[levelSize * x + y])
         {
-            switch((level[levelSize * x + y]) % 16)
+            switch((map[levelSize * x + y]) % 16)
             {
                 case 1:
-                    texturePath = std::format("gfx/map{:02}.bmp", wallType(level, visited, x, y));
+                    texturePath = std::format("gfx/map{:02}.bmp", wallType(x, y));
                     break;
                 case 2:
                     texturePath = "gfx/map19.bmp";
@@ -105,8 +114,8 @@ sdl::Surface drawMap(int* level, Player& player)
             }
         }
 
-        sdl::textures.get(texturePath).render(map, {static_cast<Sint16>(x * 8), static_cast<Sint16>(y * 8), 8, 8}, {0, 0, 8, 8});
+        sdl::textures.get(texturePath).render(target, {static_cast<Sint16>(x * 8), static_cast<Sint16>(y * 8), 8, 8}, {0, 0, 8, 8});
     }
 
-    return map;
+    return target;
 }

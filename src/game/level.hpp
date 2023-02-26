@@ -11,13 +11,25 @@ namespace sdl
 class Surface;
 }
 
+enum class BlockType
+{
+    None,
+    Wall,
+    Pillar
+};
+
 class Level
 {
 public:
+    constexpr static auto arraySize = levelSize * levelSize;
+    using TileArray = std::array<int, arraySize>;
+    using VisitedArray = std::array<bool, arraySize>;
+
     int id;
     LevelInfo li{};
-    std::array<int, levelSize * levelSize> level{};
-    std::array<bool, levelSize * levelSize> visited{};
+
+    TileArray map{};
+    VisitedArray visited{};
 
     Items items{};
     NPCs npcs{};
@@ -25,9 +37,13 @@ public:
     explicit Level(int id) : id(id) {}
     explicit Level(const std::string& filename);
 
+    int at(int x, int y) const;
     void addItem(int x, int y, int id);
+    BlockType blockType(int x, int y) const;
+    sdl::Surface drawMap(const Player& player);
+
+private:
+    bool isKnownWall(int x, int y);
+    int wallType(int x, int y);
 };
 
-int BlockType(int* level, int x, int y);
-void LoadLevel(int* level, LevelInfo* li, NPCs& npcs, const std::string& filename);
-sdl::Surface drawMap(int* level, Player& player);

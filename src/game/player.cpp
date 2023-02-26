@@ -16,7 +16,12 @@ namespace
 constexpr auto canEnter(auto x) { return x != 1 and x != 2; }
 }
 
-void Player::shoot(int* level)
+Level& Player::currentLevel()
+{
+    return current->second;
+}
+
+void Player::shoot()
 {
     if (not revolver)
     {
@@ -26,10 +31,18 @@ void Player::shoot(int* level)
     double bulletX = position.x;
     double bulletY = position.y;
 
+    auto& level = currentLevel().map;
+
     for (int i = 0; i < 100; ++i)
     {
-        if((!canEnter(level[(int)bulletX * levelSize + (int)bulletY] % 16)) || bulletX < 0 || bulletY < 0 || bulletX > levelSize || bulletY > levelSize) break;
-        if(KillNPC(bulletX, bulletY, currentLevel().npcs)) break;
+        if (not canEnter(level[(int)bulletX * levelSize + (int)bulletY] % 16)
+            or bulletX < 0 or bulletY < 0
+            or bulletX > levelSize
+            or bulletY > levelSize
+            or KillNPC(bulletX, bulletY, currentLevel().npcs))
+        {
+            break;
+        }
 
         bulletX += position.dirX * 2;
         bulletY += position.dirY * 2;
@@ -99,12 +112,22 @@ void MarkVisited(Player* player, int x, int y)
     MarkVisitedSub(visited, x + 2, y);
 }
 
-void Player::handleMovement(uint8_t* keys, int* level, char* visited, double frameTime)
+void Player::switchLevel()
+{
+    if (not levels.contains(levelId))
+    {
+        levels.emplace(levelId, Level(std::format("map/level{}.dat", levelId)));
+    }
+
+    current = levels.find(levelId);
+}
+
+void Player::handleMovement(uint8_t* keys, double frameTime)
 {
     double mSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
     double rSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
     double oldDir;
-    int collision, a;
+    int collision;
 
     auto& posX = position.x;
     auto& posY = position.y;
@@ -113,7 +136,9 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
     auto& planeX = position.planeX;
     auto& planeY = position.planeY;
 
-    if(keys[SDLK_UP])
+    auto& level = currentLevel().map;
+
+    if (keys[SDLK_UP])
     {
         collision = level[(int)(posX + dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
         if (canEnter(collision)) posX += dirX * mSpeed;
@@ -122,7 +147,7 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
-    if(keys[SDLK_DOWN])
+    if (keys[SDLK_DOWN])
     {
         collision = level[(int)(posX - dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
         if (canEnter(collision)) posX -= dirX * mSpeed;
@@ -131,7 +156,7 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
-    if(keys[SDLK_z])
+    if (keys[SDLK_z])
     {
         collision = level[(int)(posX - 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
         if (canEnter(collision)) posX -= mSpeed * sin(atan2(dirY, dirX));
@@ -140,7 +165,7 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
-    if(keys[SDLK_x])
+    if (keys[SDLK_x])
     {
         collision = level[(int)(posX + 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
         if (canEnter(collision)) posX += mSpeed * sin(atan2(dirY, dirX));
@@ -149,7 +174,7 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
         MarkVisited(this, (int)(posX), (int)(posY));
     }
 
-    if(keys[SDLK_LEFT])
+    if (keys[SDLK_LEFT])
     {
         oldDir = dirX;
         dirX = dirX * cos(rSpeed) - dirY * sin(rSpeed);
@@ -160,7 +185,7 @@ void Player::handleMovement(uint8_t* keys, int* level, char* visited, double fra
         planeY = oldDir * sin(rSpeed) + planeY * cos(rSpeed);
     }
 
-    if(keys[SDLK_RIGHT])
+    if (keys[SDLK_RIGHT])
     {
         oldDir = dirX;
         dirX = dirX * cos(-rSpeed) - dirY * sin(-rSpeed);

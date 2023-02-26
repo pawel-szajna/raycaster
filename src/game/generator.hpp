@@ -6,12 +6,12 @@
 #include "level.hpp"
 #include "ai.hpp"
 
-void clear_level(int* level);
-void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g);
-void random_room(int* level);
-void drawmap(int* level, int pX, int pY);
-void corridor(int* level);
-void generate_map(int* level, int pX, int pY, int bonusroom);
-NPCs generate_npcs(int* level);
+void clear_level(Level::TileArray& level);
+void depth_first(Level::TileArray& level, int a, int b, int c, int d, int e, int f, int g);
+void random_room(Level::TileArray& level);
+void drawmap(Level::TileArray& level, int pX, int pY);
+void corridor(Level::TileArray& level);
+void generate_map(Level::TileArray& level, int pX, int pY, int bonusroom);
+NPCs generate_npcs(Level::TileArray& level);
 
 #endif

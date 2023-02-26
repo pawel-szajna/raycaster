@@ -74,8 +74,6 @@ private:
     void reload();
     void switchFlashlight(bool target);
 
-    int level[levelSize][levelSize];
-    char visited[levelSize][levelSize];
     char texts[6][128];
     bool paused{false};
     bool flashlight{false};
@@ -115,11 +113,12 @@ void GameplayMode::reload()
 {
     spdlog::debug("Level reload triggered");
 
-    npcs = generate_npcs((int*)level);
-    InitAI((int*)level);
 
     player.switchLevel();
-    generate_map((int*)level, (int)player.getPosition().x, (int)player.getPosition().y, 1);
+    auto& level = player.currentLevel();
+    // InitAI(level.map);
+    npcs = generate_npcs(level.map);
+    generate_map(level.map, (int)player.getPosition().x, (int)player.getPosition().y, 1);
     npcs = player.currentLevel().npcs;
     ResetAI(npcs);
 
@@ -127,7 +126,7 @@ void GameplayMode::reload()
     player.currentLevel().addItem(27, 47, 1);
     player.currentLevel().addItem(27, 48, 3);
 
-    caster = std::make_unique<raycaster::Caster>((int*)level, player.currentLevel().li);
+    caster = std::make_unique<raycaster::Caster>(player.currentLevel());
     switchFlashlight(false);
 
     player.reloadLevel = false;
@@ -161,7 +160,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
     if (not paused)
     {
-        player.handleMovement(keys, (int*) level, (char*) visited, frameTime);
+        player.handleMovement(keys, frameTime);
 
         auto nearest = AI_DistanceToNearestNPC(&player);
         noiseLevel = (nearest < 4) ? ((nearest < 0.5) ? 128
@@ -183,7 +182,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
         {
             auto window = ui.makeWindow(556, 556, "Mapa", config);
             SDL_Rect mapOffset{24, 32, 0, 0};
-            drawMap((int*) level, player).render(window, mapOffset);
+            player.currentLevel().drawMap(player).render(window, mapOffset);
             ui.addObject(std::move(window));
             paused = true;
             return noStateChange;
@@ -191,7 +190,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
         if (sdl::keyPressed(SDLK_SPACE))
         {
-            player.shoot((int*)level);
+            player.shoot();
         }
     }
 

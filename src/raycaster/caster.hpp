@@ -2,6 +2,7 @@
 
 #include "sdlwrapper/sdl.hpp"
 #include "game/data.hpp"
+#include "game/level.hpp"
 
 #include <array>
 #include <unordered_map>
@@ -18,7 +19,7 @@ constexpr auto TEXTURE_HEIGHT{120};
 class Caster
 {
 public:
-    Caster(int* level, const LevelInfo& li);
+    Caster(Level& level);
 
     void frame(const Player& player);
     void draw(sdl::Surface& target);
@@ -37,7 +38,7 @@ private:
     void loadTexture(int id, const std::string& filename);
 
     double fadeStart{}, fadeEnd{};
-    int* worldMap;
+    Level& level;
 
     std::unordered_map<int, std::array<Uint32, TEXTURE_WIDTH * TEXTURE_HEIGHT>> textures;
     std::array<std::array<uint32_t, renderHeight>, renderWidth> buffer{};

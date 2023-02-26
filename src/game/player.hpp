@@ -29,24 +29,15 @@ public:
     int levelId;
     bool reloadLevel{true};
 
-    Level& currentLevel() { return current->second; }
-
     explicit Player(const GameConfig& config);
-
-    void switchLevel()
-    {
-        if (not levels.contains(levelId))
-        {
-            levels.emplace(levelId, Level(std::format("map/level{}.dat", levelId)));
-        }
-
-        current = levels.find(levelId);
-    }
 
     const Position& getPosition() const { return position; }
 
-    void handleMovement(uint8_t* keys, int* level, char* visited, double frameTime);
-    void shoot(int* level);
+    void switchLevel();
+    Level& currentLevel();
+
+    void handleMovement(uint8_t* keys, double frameTime);
+    void shoot();
     int blink();
 
 private:

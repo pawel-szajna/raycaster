@@ -2,14 +2,14 @@
 
 #include <spdlog/spdlog.h>
 
-void clear_level(int* level)
+void clear_level(Level::TileArray& level)
 {
     for(int i = 0; i < levelSize; ++i)
         for(int j = 0; j < levelSize; ++j)
             level[levelSize * i + j] = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
 }
 
-void wall_fix(int* level)
+void wall_fix(Level::TileArray& level)
 {
     int tex1, tex2, tex3, tex4;
 
@@ -72,7 +72,7 @@ void wall_fix(int* level)
     }
 }
 
-NPCs generate_npcs(int* level)
+NPCs generate_npcs(Level::TileArray& level)
 {
     NPCs npcs{};
     int dx, dy;
@@ -92,7 +92,7 @@ NPCs generate_npcs(int* level)
     return npcs;
 }
 
-void bonus_room(int* level)
+void bonus_room(Level::TileArray& level)
 {
     int x;
 
@@ -102,7 +102,7 @@ void bonus_room(int* level)
     LEV(26, 45) = LEV(28, 45) = LEV(26, 49) = LEV(28, 49) = LEV(26, 42) = LEV(26, 43) = LEV(26, 44) = LEV(28, 42) = LEV(28, 43) = LEV(28, 44) = LEV(27, 42) = 1;
 }
 
-void generate_map(int* level, int pX, int pY, int bonusroom)
+void generate_map(Level::TileArray& level, int pX, int pY, int bonusroom)
 {
     spdlog::info("Generating level structure");
     clear_level(level);
@@ -116,7 +116,7 @@ void generate_map(int* level, int pX, int pY, int bonusroom)
     /*drawmap(levelId, pX, pY);*/
 }
 
-void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)
+void depth_first(Level::TileArray& level, int a, int b, int c, int d, int e, int f, int g)
 {
     int sasiedzi[4][4], ilosc_sasiadow, kolejnosc[4];
     if(!level[levelSize * a + b]) return;
@@ -190,7 +190,7 @@ void depth_first(int* level, int a, int b, int c, int d, int e, int f, int g)
     }
 }
 
-void random_room(int* level)
+void random_room(Level::TileArray& level)
 {
     int x, y;
     int width = (rand() % 2) + 4;
@@ -204,7 +204,7 @@ void random_room(int* level)
     for(x = rx; x < width; ++x) for(y = ry; y < height; ++y) LEV(x,y) = 0;
 }
 
-void corridor(int* level)
+void corridor(Level::TileArray& level)
 {
     int orientacja = rand() % 2;
     if(orientacja)

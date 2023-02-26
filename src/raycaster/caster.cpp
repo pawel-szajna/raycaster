@@ -33,24 +33,17 @@ enum class Hit : bool
     Vertical
 };
 
-constexpr auto sqr(auto x)
-{
-    return x * x;
-}
+constexpr auto sqr(auto x) { return x * x; }
 
-constexpr auto outOfBounds(int x, int y, int size)
-{
-    return x < 0 or y < 0 or x >= size or y >= size;
-}
+constexpr auto outOfBounds(int x, int y, int size) { return x < 0 or y < 0 or x >= size or y >= size; }
 
-constexpr auto color(uint32_t red, uint32_t green, uint32_t blue)
-{
-    return 65536 * red + 256 * green + blue;
-}
+constexpr auto color(uint32_t red, uint32_t green, uint32_t blue) { return 65536 * red + 256 * green + blue; }
+constexpr auto gray(uint32_t brightness) { return color(brightness, brightness, brightness); }
 
-constexpr auto gray(uint32_t brightness)
+namespace tile
 {
-    return color(brightness, brightness, brightness);
+constexpr auto type(int tile) { return tile % 16; }
+constexpr auto texture(int tile) { return (tile / 16) % 16; }
 }
 }
 
@@ -76,18 +69,14 @@ void Caster::loadTexture(int id, const std::string& filename)
     fclose(data);
 }
 
-Caster::Caster(int *level, const LevelInfo& li) :
-    worldMap(level),
+Caster::Caster(Level& level) :
+    level(level),
     worldView(sdl::make_surface(renderWidth, renderHeight))
 {
     spdlog::info("Initializing caster");
-    assert(level);
 
-    auto numSprites = 0;
-    for (int x = 0; x < levelSize; ++x)
-        for (int y = 0; y < levelSize; ++y)
-            if (BlockType(level, x, y) == 2 || BlockType(level, x, y) == 5 || BlockType(level, x, y) == 6)
-                ++numSprites;
+    auto numSprites = std::count_if(level.map.begin(), level.map.end(),
+                                    [](auto tile) { return tile::type(tile) == 2 or tile::type(tile) == 5 or tile::type(tile) == 6; });
 
     sprites.clear();
     sprites.reserve(numSprites);
@@ -95,29 +84,29 @@ Caster::Caster(int *level, const LevelInfo& li) :
     for (int x = 0; x < levelSize; ++x)
         for (int y = 0; y < levelSize; ++y)
         {
-            int u = BlockType(level, x, y);
-            if (u == 2 || u == 5 || u == 6)
+            int type = tile::type(level.at(x, y));
+            if (type == 2 || type == 5 || type == 6)
             {
-                auto texture = ((level[levelSize * x + y] / 16) % 16) + (u == 2 ? 16 : (u == 5 ? 32 : 0));
+                auto texture = tile::texture(level.at(x, y)) + (type == 2 ? 16 : (type == 5 ? 32 : 0));
                 sprites.push_back(Sprite{0.5 + x, 0.5 + y, texture, 0});
             }
         }
 
     spdlog::info("Loading textures");
 
-    for (int x = 1; x <= li.textureSetSize; ++x) loadTexture(x, std::format("gfx/set_{}/{}.raw", li.textureSet, x));
-    for (int x = 0; x < li.pillarTexCount; ++x) loadTexture(16 + x, std::format("gfx/{}.raw", li.pillarTex[x]));
-    for (int x = 0; x < li.debrisTexCount; ++x) loadTexture(32 + x, std::format("gfx/{}.raw", li.debrisTex[x]));
+    for (int x = 1; x <= level.li.textureSetSize; ++x) loadTexture(x, std::format("gfx/set_{}/{}.raw", level.li.textureSet, x));
+    for (int x = 0; x < level.li.pillarTexCount; ++x) loadTexture(16 + x, std::format("gfx/{}.raw", level.li.pillarTex[x]));
+    for (int x = 0; x < level.li.debrisTexCount; ++x) loadTexture(32 + x, std::format("gfx/{}.raw", level.li.debrisTex[x]));
     for (int x = 0; x < 4; ++x) loadTexture(96 + x, std::format("gfx/items/{}.raw", x));
 
-    for (int x = 0; x < li.npcTexCount; ++x)
+    for (int x = 0; x < level.li.npcTexCount; ++x)
     {
-        loadTexture(48 + x, std::format("gfx/{}_walk1.raw", li.npcTex[x]));
-        loadTexture(56 + x, std::format("gfx/{}_walk2.raw", li.npcTex[x]));
-        loadTexture(64 + x, std::format("gfx/{}_walk3.raw", li.npcTex[x]));
-        loadTexture(72 + x, std::format("gfx/{}_walk4.raw", li.npcTex[x]));
-        loadTexture(80 + x, std::format("gfx/{}_shoot.raw", li.npcTex[x]));
-        loadTexture(88 + x, std::format("gfx/{}_dead.raw", li.npcTex[x]));
+        loadTexture(48 + x, std::format("gfx/{}_walk1.raw", level.li.npcTex[x]));
+        loadTexture(56 + x, std::format("gfx/{}_walk2.raw", level.li.npcTex[x]));
+        loadTexture(64 + x, std::format("gfx/{}_walk3.raw", level.li.npcTex[x]));
+        loadTexture(72 + x, std::format("gfx/{}_walk4.raw", level.li.npcTex[x]));
+        loadTexture(80 + x, std::format("gfx/{}_shoot.raw", level.li.npcTex[x]));
+        loadTexture(88 + x, std::format("gfx/{}_dead.raw", level.li.npcTex[x]));
     }
 
     loadTexture(0, "gfx/transparent.raw");
@@ -240,7 +229,7 @@ void Caster::renderWalls(const Position& position)
                                side = Hit::Vertical;
                            }
 
-                           if ((worldMap[mapX * levelSize + mapY] % 16) == 1)
+                           if (tile::type(level.at(mapX, mapY)) == 1)
                            {
                                break;
                            }
@@ -265,7 +254,7 @@ void Caster::renderWalls(const Position& position)
                        auto dStart = std::max(-lineHeight / 2 + renderHeight / 2, 0);
                        auto dEnd = std::min(lineHeight / 2 + renderHeight / 2, renderHeight - 1);
 
-                       auto tex = (worldMap[mapX * levelSize + mapY] >> 4);
+                       auto tex = (level.at(mapX, mapY) >> 4);
                        if (side == Hit::Horizontal and position.x < mapX)
                        {
                            tex >>= 8;
