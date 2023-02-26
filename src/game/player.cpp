@@ -132,7 +132,7 @@ void Player::handleMovement(uint8_t* keys, double frameTime)
     if (keys[SDLK_RIGHT]) rotationFactor -= 1;
     if (keys[SDLK_LEFT])  rotationFactor += 1;
 
-    if (walkFactor != 0)
+    if (walkFactor != 0 or strafeFactor != 0)
     {
         auto differenceX = movementSpeed * (walkFactor * position.dirX + strafeFactor * sin(atan2(position.dirY, position.dirX)));
         auto differenceY = movementSpeed * (walkFactor * position.dirY - strafeFactor * cos(atan2(position.dirY, position.dirX)));
