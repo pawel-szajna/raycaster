@@ -41,8 +41,14 @@ struct NPC
     int firstTexture;
     int currentTexture;
     bool alive;
+    int sprite;
     int targetX;
     int targetY;
+
+    int texture() const
+    {
+        return alive ? (48 + firstTexture + 8 * currentTexture) : 88 + firstTexture;
+    }
 };
 
 using NPCs = std::vector<NPC>;

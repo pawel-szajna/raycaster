@@ -38,7 +38,7 @@ AI::AI(Player &player,
 {
 }
 
-void AI::refreshItems()
+void AI::registerSprites()
 {
     if (caster == nullptr)
     {
@@ -46,12 +46,19 @@ void AI::refreshItems()
         return;
     }
 
-    for (auto& item : player.currentLevel().items)
+    auto& level = player.currentLevel();
+
+    for (auto& item : level.items)
     {
         if (not item.taken)
         {
-            item.sprite = caster->addSprite(item. x, item. y, item.number + 96);
+            item.sprite = caster->addSprite(item.x, item.y, item.number + 96);
         }
+    }
+
+    for (auto& npc : level.npcs)
+    {
+        npc.sprite = caster->addSprite(npc.x, npc.y, npc.texture());
     }
 }
 
@@ -76,12 +83,6 @@ void InitAI(int* level)
         if(CANENTER(levelId[32*x+y-1]%16)) AIMap[x][y] += 8;	*/
         AIMap[x][y] = CANENTER(level[levelSize * x + y] % 16);
     }
-}
-
-void AI::addNpc(double x, double y, int firstTexture)
-{
-    spdlog::debug("Adding new NPC [{:1.0f};{:1.0f}]", x, y);
-    player.currentLevel().npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, true, 0, 0});
 }
 
 void UpdateNode(int cx, int cy, int tx, int ty, int value)
@@ -202,8 +203,10 @@ int AI::tick(double frameTime, bool flashlight)
             }
         }
 
-        // auto npcTexture = npc.alive ? (48 + npc.firstTexture + 8 * npc.currentTexture) : 88 + npc.firstTexture;
-        // AddDynamicSprite(npc.x, npc.y, npcTexture); TODO
+        if (npc.sprite > 0)
+        {
+            caster->updateSprite(npc.sprite, npc.x, npc.y, npc.texture());
+        }
     }
 
     for (auto& item : currentLevel.items)

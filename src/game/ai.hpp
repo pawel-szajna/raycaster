@@ -18,9 +18,8 @@ class AI
 public:
     AI(Player& player, std::unique_ptr<raycaster::Caster>& caster);
 
-    void refreshItems();
+    void registerSprites();
 
-    void addNpc(double x, double y, int firstTexture);
     bool killNpc(double x, double y);
 
     double distanceToNearestNpc();

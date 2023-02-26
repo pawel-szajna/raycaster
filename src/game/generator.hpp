@@ -8,7 +8,7 @@
 class Generator
 {
 public:
-    explicit Generator(Level::TileArray& level);
+    explicit Generator(Level& level);
 
     void fillMap(int playerX, int playerY, bool bonusRoom);
     NPCs generateNpcs(AI& ai);
@@ -26,7 +26,8 @@ private:
 
     void dig(int currentX, int currentY, int connectionX, int connectionY, bool fill);
 
-    Level::TileArray& level;
+    Level& level;
+    Level::TileArray& map;
 
     std::random_device rd;
     std::mt19937 rng{rd()};

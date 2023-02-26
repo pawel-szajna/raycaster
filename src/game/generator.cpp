@@ -19,13 +19,14 @@ struct Neighbour
 };
 }
 
-Generator::Generator(Level::TileArray &level) :
-    level(level)
+Generator::Generator(Level& level) :
+    level(level),
+    map(level.map)
 {}
 
 int& Generator::at(int x, int y)
 {
-    return level[xy(x, y)];
+    return map[xy(x, y)];
 }
 
 bool Generator::wallAt(int x, int y)
@@ -51,7 +52,7 @@ void Generator::fillMap(int playerX, int playerY, bool bonusRoom)
 void Generator::clearLevel()
 {
     auto empty = 1 + (1 << 4) + (1 << 8) + (1 << 12) + (1 << 16) + (1 << 20) + (1 << 24);
-    std::fill(level.begin(), level.end(), empty);
+    std::fill(map.begin(), map.end(), empty);
 }
 
 void Generator::dig(int currentX, int currentY, int connectionX, int connectionY, bool fill)
@@ -147,19 +148,26 @@ NPCs Generator::generateNpcs(AI& ai)
 {
     NPCs npcs{};
 
-    int dx, dy;
     int npcsToGenerate = levelSize / 4;
 
     spdlog::debug("Generating {} NPCs", npcsToGenerate);
 
     while (npcsToGenerate > 0)
     {
-        dx = rand() % levelSize;
-        dy = rand() % levelSize;
-        if (at(dx, dy) % 16 == 0)
+        auto x = rand() % levelSize;
+        auto y = rand() % levelSize;
+        auto field = at(x, y) % 16;
+        if (field == EMPTY)
         {
             --npcsToGenerate;
-            ai.addNpc(dx, dy, 0);
+            spdlog::debug("Adding new NPC [{:1.0f};{:1.0f}]", x, y);
+            level.npcs.push_back(NPC{.x = x + 0.5,
+                                     .y = y + 0.5,
+                                     .distance = 0,
+                                     .firstTexture = 0,
+                                     .currentTexture = 0,
+                                     .alive = true,
+                                     .sprite = 0});
         }
     }
 

@@ -120,17 +120,17 @@ void GameplayMode::reload()
 
     auto& level = player.currentLevel();
 
-    auto generator = Generator(level.map);
+    auto generator = Generator(level);
     constexpr auto enableBonusRoom{true};
     generator.fillMap((int)player.getPosition().x, (int)player.getPosition().y, enableBonusRoom);
-    // npcs = generator.generateNpcs();
+    npcs = generator.generateNpcs(ai);
 
     player.currentLevel().addItem(27, 46, 0);
     player.currentLevel().addItem(27, 47, 1);
     player.currentLevel().addItem(27, 48, 3);
 
     caster = std::make_unique<raycaster::Caster>(player.currentLevel());
-    ai.refreshItems();
+    ai.registerSprites();
     switchFlashlight(false);
 
     player.reloadLevel = false;
