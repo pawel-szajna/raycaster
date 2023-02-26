@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <cstdint>
 
+class AI;
 class GameConfig;
 
 struct Position
@@ -37,7 +38,7 @@ public:
     Level& currentLevel();
 
     void handleMovement(uint8_t* keys, double frameTime);
-    void shoot();
+    void shoot(AI& ai);
     int blink();
 
 private:

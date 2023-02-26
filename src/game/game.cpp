@@ -82,6 +82,7 @@ private:
     LevelInfo levelInfo{};
     NPCs npcs{};
     Player player;
+    AI ai;
     UI& ui;
     sdl::Surface& screen;
     sdl::Surface& gunHand;
@@ -96,6 +97,7 @@ GameplayMode::GameplayMode(UI& ui,
     noiseLevel(noiseLevel),
     config(config),
     player(config),
+    ai(player),
     ui(ui),
     screen(screen),
     gunHand(sdl::textures.get("gfx/gun/gun1.bmp"))
@@ -117,14 +119,11 @@ void GameplayMode::reload()
     npcs = player.currentLevel().npcs;
 
     auto& level = player.currentLevel();
-    // InitAI(level.map);
 
     auto generator = Generator(level.map);
     constexpr auto enableBonusRoom{true};
     generator.fillMap((int)player.getPosition().x, (int)player.getPosition().y, enableBonusRoom);
     // npcs = generator.generateNpcs();
-
-    ResetAI(npcs);
 
     player.currentLevel().addItem(27, 46, 0);
     player.currentLevel().addItem(27, 47, 1);
@@ -166,7 +165,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
     {
         player.handleMovement(keys, frameTime);
 
-        auto nearest = AI_DistanceToNearestNPC(&player);
+        auto nearest = ai.distanceToNearestNpc();
         noiseLevel = (nearest < 4) ? ((nearest < 0.5) ? 128
                                                       : ceil(nearest * (nearest * (5.9242 * nearest - 39.9883) + 35.5452) + 119.484))
                                    : (!(rand() % 5) ? 2 : 1);
@@ -175,7 +174,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
             return GameMode::GameOver;
         }
 
-        if (auto textId = AI_Tick(&player, frameTime, flashlight) > 0)
+        if (auto textId = ai.tick(frameTime, flashlight) > 0)
         {
             ui.addMessageWindow("", texts[textId], config);
             paused = true;
@@ -194,7 +193,7 @@ std::optional<GameMode> GameplayMode::frame(double frameTime)
 
         if (sdl::keyPressed(SDLK_SPACE))
         {
-            player.shoot();
+            player.shoot(ai);
         }
     }
 

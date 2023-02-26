@@ -31,6 +31,11 @@ int AIMap[levelSize][levelSize];
 int AISearchMap[levelSize][levelSize];
 int goOn;
 
+AI::AI(Player &player) :
+    player(player)
+{
+}
+
 void InitAI(int* level)
 {
     int x, y;
@@ -54,16 +59,10 @@ void InitAI(int* level)
     }
 }
 
-void ResetAI(NPCs& npcs)
-{
-    spdlog::info("AI reset");
-    npcs.clear();
-}
-
-void AddNPC(NPCs& npcs, double x, double y, int firstTexture)
+void AI::addNpc(double x, double y, int firstTexture)
 {
     spdlog::debug("Adding new NPC [{:1.0f};{:1.0f}]", x, y);
-    npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, 1, 0, 0});
+    player.currentLevel().npcs.push_back(NPC{x + 0.5, y + 0.5, 0, firstTexture, 0, true, 0, 0});
 }
 
 void UpdateNode(int cx, int cy, int tx, int ty, int value)
@@ -103,15 +102,15 @@ void UpdateSearchMap(int cx, int cy, int tx, int ty)
     /*PrintSearchMap();*/
 }
 
-double AI_DistanceToNearestNPC(Player* player)
+double AI::distanceToNearestNpc()
 {
     auto nearest = 100.0;
 
-    for (auto& npc : player->currentLevel().npcs)
+    for (auto& npc : player.currentLevel().npcs)
     {
         if (npc.alive)
         {
-            auto distance = DIST(npc.x, npc.y, player->getPosition().x, player->getPosition().y);
+            auto distance = DIST(npc.x, npc.y, player.getPosition().x, player.getPosition().y);
             nearest = std::min(distance, nearest);
             npc.distance = distance;
         }
@@ -120,8 +119,10 @@ double AI_DistanceToNearestNPC(Player* player)
     return sqrt(nearest);
 }
 
-bool KillNPC(double x, double y, NPCs& npcs)
+bool AI::killNpc(double x, double y)
 {
+    auto& npcs = player.currentLevel().npcs;
+
     auto npcToKill = std::find_if(npcs.begin(),
                                   npcs.end(),
                                   [x, y] (const auto& npc)
@@ -140,21 +141,21 @@ bool KillNPC(double x, double y, NPCs& npcs)
     return true;
 }
 
-int AI_Tick(Player* player, double frameTime, int flashlight)
+int AI::tick(double frameTime, bool flashlight)
 {
     double distance, target;
     int popup{};
 
     lastTick += frameTime;
-    if(lastTick < TICK_FREQUENCY)
+    if (lastTick < TICK_FREQUENCY)
     {
-        return popup;
+        return 0;
     }
 
     // ResetDynamicSprites(); TODO
 
-    auto& currentLevel = player->currentLevel();
-    const auto& position = player->getPosition();
+    auto& currentLevel = player.currentLevel();
+    const auto& position = player.getPosition();
 
     for (auto& npc : currentLevel.npcs)
     {
@@ -195,19 +196,19 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
             switch (item.number)
             {
             case 0:
-                player->revolver = 1;
+                player.revolver = 1;
                 break;
             case 1:
-                player->flashlight = 1;
+                player.flashlight = 1;
                 break;
             case 2:
-                player->bullets += 5;
+                player.bullets += 5;
                 break;
             case 3:
-                player->battery += 50;
+                player.battery += 50;
                 break;
             default:
-                assert(!("Unknown item ID!"));
+                spdlog::warn("Found unsupported item: {}", item.number);
             }
 
             popup = item.number + 5;
@@ -220,9 +221,9 @@ int AI_Tick(Player* player, double frameTime, int flashlight)
         }
     }
 
-    if (player->battery and flashlight)
+    if (player.battery and flashlight)
     {
-        player->battery--;
+        // player->battery--;
     }
 
     lastTick = 0;

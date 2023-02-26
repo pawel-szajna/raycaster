@@ -5,11 +5,21 @@
 #include "data.hpp"
 
 class Player;
+class Level;
 
-void ResetAI(NPCs& npcs);
-void InitAI(int* level);
-bool KillNPC(double x, double y, NPCs& npcs);
-int AI_Tick(Player* player, double frameTime, int flashlight);
-double AI_DistanceToNearestNPC(Player* player);
-void AddNPC(NPCs& npcs, double x, double y, int firstTexture);
+class AI
+{
+public:
+    AI(Player& player);
+
+    void addNpc(double x, double y, int firstTexture);
+    bool killNpc(double x, double y);
+
+    double distanceToNearestNpc();
+
+    int tick(double frameTime, bool flashlight);
+
+private:
+    Player& player;
+};
 

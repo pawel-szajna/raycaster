@@ -143,7 +143,7 @@ void Generator::fixWallTextures()
     }
 }
 
-NPCs Generator::generateNpcs()
+NPCs Generator::generateNpcs(AI& ai)
 {
     NPCs npcs{};
 
@@ -159,7 +159,7 @@ NPCs Generator::generateNpcs()
         if (at(dx, dy) % 16 == 0)
         {
             --npcsToGenerate;
-            AddNPC(npcs, dx, dy, 0);
+            ai.addNpc(dx, dy, 0);
         }
     }
 

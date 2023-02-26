@@ -11,7 +11,7 @@ public:
     explicit Generator(Level::TileArray& level);
 
     void fillMap(int playerX, int playerY, bool bonusRoom);
-    NPCs generateNpcs();
+    NPCs generateNpcs(AI& ai);
 
 private:
     int& at(int x, int y);

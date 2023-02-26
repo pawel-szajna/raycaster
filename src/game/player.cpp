@@ -13,7 +13,9 @@
 
 namespace
 {
+constexpr auto at(auto x, auto y) { return x * levelSize + y; }
 constexpr auto canEnter(auto x) { return x != 1 and x != 2; }
+constexpr auto walkable(Level::TileArray& level, int x, int y) { return canEnter(level[at(x, y)] % 16); }
 }
 
 Level& Player::currentLevel()
@@ -21,7 +23,7 @@ Level& Player::currentLevel()
     return current->second;
 }
 
-void Player::shoot()
+void Player::shoot(AI& ai)
 {
     if (not revolver)
     {
@@ -39,7 +41,7 @@ void Player::shoot()
             or bulletX < 0 or bulletY < 0
             or bulletX > levelSize
             or bulletY > levelSize
-            or KillNPC(bulletX, bulletY, currentLevel().npcs))
+            or ai.killNpc(bulletX, bulletY))
         {
             break;
         }
@@ -124,9 +126,8 @@ void Player::switchLevel()
 
 void Player::handleMovement(uint8_t* keys, double frameTime)
 {
-    double mSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
-    double rSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
-    double oldDir;
+    double movementSpeed = frameTime * 1.6 * speedFactor; /* pola/sekunde */
+    double rotationSpeed = frameTime * 1.2 * speedFactor; /* radiany/sekunde */
     int collision;
 
     auto& posX = position.x;
@@ -138,62 +139,37 @@ void Player::handleMovement(uint8_t* keys, double frameTime)
 
     auto& level = currentLevel().map;
 
-    if (keys[SDLK_UP])
+    double walkFactor = 0;
+    double strafeFactor = 0;
+    double rotationFactor = 0;
+
+    if (keys[SDLK_DOWN]) walkFactor -= 1;
+    if (keys[SDLK_UP])   walkFactor += 1;
+    if (keys[SDLK_z]) strafeFactor -= 1;
+    if (keys[SDLK_x]) strafeFactor += 1;
+    if (keys[SDLK_RIGHT]) rotationFactor -= 1;
+    if (keys[SDLK_LEFT])  rotationFactor += 1;
+
+    if (walkFactor != 0)
     {
-        collision = level[(int)(posX + dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
-        if (canEnter(collision)) posX += dirX * mSpeed;
-        collision = level[(int)posX * levelSize + (int)(posY + dirY * mSpeed * 3)] % 16;
-        if (canEnter(collision)) posY += dirY * mSpeed;
-        MarkVisited(this, (int)(posX), (int)(posY));
+        auto differenceX = movementSpeed * (walkFactor * dirX + strafeFactor * sin(atan2(dirY, dirX)));
+        auto differenceY = movementSpeed * (walkFactor * dirY - strafeFactor * cos(atan2(dirY, dirX)));
+
+        if (walkable(level, position.x + differenceX * 3, position.y)) position.x += differenceX;
+        if (walkable(level, position.x, position.y + differenceY * 3)) position.y += differenceY;
+
+        MarkVisited(this, (int)(position.x), (int)(position.y));
     }
 
-    if (keys[SDLK_DOWN])
+    if (rotationFactor != 0)
     {
-        collision = level[(int)(posX - dirX * mSpeed * 3) * levelSize + (int)posY] % 16;
-        if (canEnter(collision)) posX -= dirX * mSpeed;
-        collision = level[(int)posX * levelSize + (int)(posY - dirY * mSpeed * 3)] % 16;
-        if (canEnter(collision)) posY -= dirY * mSpeed;
-        MarkVisited(this, (int)(posX), (int)(posY));
-    }
-
-    if (keys[SDLK_z])
-    {
-        collision = level[(int)(posX - 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
-        if (canEnter(collision)) posX -= mSpeed * sin(atan2(dirY, dirX));
-        collision = level[(int)posX * levelSize + (int)(posY + 3 * mSpeed * cos(atan2(dirY, dirX)))] % 16;
-        if (canEnter(collision)) posY += mSpeed * cos(atan2(dirY, dirX));
-        MarkVisited(this, (int)(posX), (int)(posY));
-    }
-
-    if (keys[SDLK_x])
-    {
-        collision = level[(int)(posX + 3 * mSpeed * sin(atan2(dirY, dirX))) * levelSize + (int)posY] % 16;
-        if (canEnter(collision)) posX += mSpeed * sin(atan2(dirY, dirX));
-        collision = level[(int)posX * levelSize + (int)(posY - 3 * mSpeed * cos(atan2(dirY, dirX)))] % 16;
-        if (canEnter(collision)) posY -= mSpeed * cos(atan2(dirY, dirX));
-        MarkVisited(this, (int)(posX), (int)(posY));
-    }
-
-    if (keys[SDLK_LEFT])
-    {
-        oldDir = dirX;
-        dirX = dirX * cos(rSpeed) - dirY * sin(rSpeed);
-        dirY = oldDir * sin(rSpeed) + dirY * cos(rSpeed);
+        auto oldDir = dirX;
+        dirX = dirX * cos(rotationSpeed * rotationFactor) - dirY * sin(rotationSpeed * rotationFactor);
+        dirY = oldDir * sin(rotationSpeed * rotationFactor) + dirY * cos(rotationSpeed * rotationFactor);
 
         oldDir = planeX;
-        planeX = planeX * cos(rSpeed) - planeY * sin(rSpeed);
-        planeY = oldDir * sin(rSpeed) + planeY * cos(rSpeed);
-    }
-
-    if (keys[SDLK_RIGHT])
-    {
-        oldDir = dirX;
-        dirX = dirX * cos(-rSpeed) - dirY * sin(-rSpeed);
-        dirY = oldDir * sin(-rSpeed) + dirY * cos(-rSpeed);
-
-        oldDir = planeX;
-        planeX = planeX * cos(-rSpeed) - planeY * sin(-rSpeed);
-        planeY = oldDir * sin(-rSpeed) + planeY * cos(-rSpeed);
+        planeX = planeX * cos(rotationSpeed * rotationFactor) - planeY * sin(rotationSpeed * rotationFactor);
+        planeY = oldDir * sin(rotationSpeed * rotationFactor) + planeY * cos(rotationSpeed * rotationFactor);
     }
 
 //    if(level[(int)posX * levelSize + (int)posY] % 16 == 6)
